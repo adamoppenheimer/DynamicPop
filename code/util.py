@@ -215,6 +215,14 @@ def polynomial_fn(xvals, a, b, c, d, e):
     poly_vals = a * ( (e * xvals - b) ** (1 / c) ) + d
     return poly_vals
 
+def exp_fn(xvals, a, b, c):
+    '''
+    Exponential of the form:
+        y = a * e ** (b * x) + c
+    '''
+    exp_vals = a * e ** (b * xvals) + c
+    return exp_vals
+
 ####################
 ## Crit functions ##
 ####################
@@ -286,9 +294,38 @@ def crit_log(params, *args):
 
 def crit_polyvals(params, *args):
     a_0, b_0, c_0, d_0, e_0 = params
-    xvals, years = args
+    xvals, years, datatype, param = args
     guess = polynomial_fn(years, a_0, b_0, c_0, d_0, e_0)
-    diff = np.sum((xvals - guess) ** 2)
+
+    # Penalize guesses < 0
+    guess[guess < 0] = -5
+
+    if datatype == 'mortality' and param == 'a':
+        # Weight most recently data more heavily
+        diff = np.sum( (xvals[:-10] - guess[:-10]) ** 2) \
+                + np.sum( (1 + (xvals[-10:] - guess[-10:]) ** 2) ** 10)
+    elif datatype == 'mortality' and param == 'Infant Mortality':
+        # Weight most recently data more heavily
+        diff = np.sum( (xvals[:-30] - guess[:-30]) ** 2) \
+                + np.sum( (1 + (xvals[-30:] - guess[-30:]) ** 2) ** 30)
+    
+    else:
+        diff = np.sum((xvals - guess) ** 2)
+    return diff
+
+def crit_exp(params, *args):
+    a_0, b_0, c_0 = params
+    xvals, years, pop = args
+    guess = exp_fn(years, a_0, b_0, c_0)
+    if isinstance(pop, bool):
+        xvals_compare = xvals
+        guess_compare = guess
+    else:
+        # Weight by population
+        xvals_compare = xvals * pop
+        guess_compare = (guess * pop)
+    diff = np.sum( (xvals_compare - guess_compare) ** 2)
+
     return diff
 
 ###################
@@ -503,15 +540,14 @@ def log_est(data, a_0, b_0, x_0, years, smooth, datatype, param='', print_params
 
     return a_MLE, b_MLE, x_MLE
 
-def poly_est(data, a_0, b_0, c_0, d_0, e_0, years, smooth, datatype, param='', print_params=False, show_plot=False):
+def poly_est(data, a_0, b_0, c_0, d_0, e_0, years, smooth, datatype, param='', print_params=False, show_plot=False, pop=False):
     '''
     Estimate parameters for polynomial function
     '''
     params_init = np.array([a_0, b_0, c_0, d_0, e_0])
 
     results_cstr = opt.minimize(crit_polyvals, params_init,\
-                    args=(np.array(data), years), method="L-BFGS-B",\
-                    bounds=((None, None), (None, min(years) - 1e-10), (1 + 1e-10, None), (None, None), (1e-10, None)))
+                    args=(np.array(data), years, datatype, param), method="L-BFGS-B")
     a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = results_cstr.x
 
     if print_params:
@@ -533,51 +569,57 @@ def poly_est(data, a_0, b_0, c_0, d_0, e_0, years, smooth, datatype, param='', p
 
     return a_MLE, b_MLE, c_MLE, d_MLE, e_MLE
 
+def exp_est(data, year, a_0, b_0, c_0, ages, smooth, datatype, param='', print_params=False, show_plot=False, pop=False):
+    '''
+    Estimate parameters for polynomial function
+    '''
+    params_init = np.array([a_0, b_0, c_0])
+
+    results_cstr = opt.minimize(crit_exp, params_init,\
+                    args=(np.array(data), ages, pop), method="L-BFGS-B")
+    a_MLE, b_MLE, c_MLE = results_cstr.x
+
+    if print_params:
+        print('a_MLE=', a_MLE, 'b_MLE=', b_MLE, 'c_MLE=', c_MLE)
+    
+    exp_vals = exp_fn(ages, a_MLE, b_MLE, c_MLE)
+
+    plots = []
+    plots.append(plt.plot(ages, data))
+    plots.append(plt.plot(ages, exp_vals))
+
+    plots[0][0].set_label(param)
+    plots[1][0].set_label(param + ' estimate')
+    plt.legend()
+    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/' + str(year))
+    if show_plot:
+        plt.show()
+    plt.close()
+
+    return a_MLE, b_MLE, c_MLE
+
 ########################
 ## Plotting functions ##
 ########################
-def plot_params(start, end, smooth, a_list, b_list, p_list, q_list, scales, datatype):
+def plot_params(start, end, smooth, params_list, datatype):
     '''
     Plot parameter estimates over time
     '''
     years = np.linspace(start, end, end - start + 1)
     lines = []
-    lines.append(plt.plot(years, a_list))
-    lines.append(plt.plot(years, b_list))
-    lines.append(plt.plot(years, p_list))
-    lines.append(plt.plot(years, q_list))
-    lines.append(plt.plot(years, scales))
-
-    lines[0][0].set_label('a')
-    lines[1][0].set_label('b')
-    lines[2][0].set_label('p')
-    lines[3][0].set_label('q')
-    lines[4][0].set_label('Scale')
+    for i, param_list in enumerate(params_list):
+        lines.append(plt.plot(years, param_list[1]))
+        lines[i][0].set_label(param_list[0])
 
     plt.legend()
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_parameters')
     plt.close()
 
-    plt.plot(years, a_list, label='a')
-    plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_a')
-    plt.close()
-    plt.plot(years, b_list, label='b')
-    plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_b')
-    plt.close()
-    plt.plot(years, p_list, label='p')
-    plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_p')
-    plt.close()
-    plt.plot(years, q_list, label='q')
-    plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_q')
-    plt.close()
-    plt.plot(years, scales, label='Scale')
-    plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_scale')
-    plt.close()
+    for i, param_list in enumerate(params_list):
+        plt.plot(years, param_list[1], label=param_list[0])
+        plt.legend()
+        plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param_list[0])
+        plt.close()
 
 def plot_data_transition_gen_beta2_estimates(a_params, b_params, p_params, q_params, scale_params, start, end, ages, smooth, datatype):
     '''
@@ -616,6 +658,37 @@ def plot_data_transition_gen_beta2_estimates(a_params, b_params, p_params, q_par
 
         gen_beta2 = gen_beta2_fun_pdf(ages, a, b, p, q)
         plt.plot(ages, gen_beta2 * scale, linewidth=2)
+    
+    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_predicted')
+    plt.close()
+
+def plot_data_transition_exp_estimates(a_params, b_params, c_params, start, end, ages, smooth, datatype):
+    '''
+    Plot data transition using generalized beta^2 parameter estimates
+    '''
+    a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = a_params
+    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
+    L_MLE_c, k_MLE_c, x_MLE_c, min_c = c_params
+
+    NUM_COLORS = end + 1 - start
+
+    cm = plt.get_cmap('Blues')
+    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
+    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
+
+    for year in range(start, end + 1):
+        a = polynomial_fn(year, a_MLE, b_MLE, c_MLE, d_MLE, e_MLE)
+        a = max(a, 1e-6)
+        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
+        #b = min(b, 0.11)
+        c = logistic_function(year, L_MLE_c, k_MLE_c, x_MLE_c) + min_c
+        #c = min(c, -1e-10)
+
+        exp_val = exp_fn(ages, a, b, c)
+        plt.plot(ages, exp_val, linewidth=2)
     
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_predicted')
     plt.close()
@@ -687,6 +760,43 @@ def overlay_estimates(data, a_params, b_params, p_params, q_params, scale_params
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_overlay_predicted')
     plt.close()
 
+def overlay_estimates_mort(data, a_params, b_params, c_params, start, end, ages, smooth, datatype):
+    '''
+    Plot data transition using generalized beta^2 parameter estimates
+    '''
+    a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = a_params
+    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
+    L_MLE_c, k_MLE_c, x_MLE_c, min_c = c_params
+
+    NUM_COLORS = end + 1 - start
+
+    cm1 = plt.get_cmap('Blues')
+    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
+    scalarMap1 = mplcm.ScalarMappable(norm=cNorm, cmap=cm1)
+    cm2 = plt.get_cmap('Reds')
+    scalarMap2 = mplcm.ScalarMappable(norm=cNorm, cmap=cm2)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_prop_cycle(color=[scalarMap1.to_rgba(i) for i in range(NUM_COLORS)] + [scalarMap2.to_rgba(i) for i in range(NUM_COLORS)])
+
+    for year in range(start, end + 1):
+        a = polynomial_fn(year, a_MLE, b_MLE, c_MLE, d_MLE, e_MLE)
+        a = max(a, 1e-6)
+        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
+        #b = min(b, 0.11)
+        c = logistic_function(year, L_MLE_c, k_MLE_c, x_MLE_c) + min_c
+        #c = min(c, -1e-10)
+
+        exp_val = exp_fn(ages, a, b, c)
+        plt.plot(ages, exp_val, linewidth=2)
+
+    for year in range(start, end + 1):
+        data_yr = rolling_avg_year(data, year, smooth)
+        ax.plot(ages[:len(data_yr)], data_yr, linewidth=2)
+
+    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_overlay_predicted')
+    plt.close()
+
 def plot_2100(a_params, b_params, p_params, q_params, scale_params, ages, smooth, datatype):
     '''
     Plot 2014 vs 2100 using generalized beta^2 parameter estimates
@@ -715,6 +825,29 @@ def plot_2100(a_params, b_params, p_params, q_params, scale_params, ages, smooth
 
         gen_beta2 = gen_beta2_fun_pdf(ages, a, b, p, q)
         plt.plot(ages, gen_beta2 * scale, linewidth=2, label=str(year))
+    
+    plt.legend()
+    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_2100')
+    plt.close()
+
+def plot_2100_mort(a_params, b_params, c_params, ages, smooth, datatype):
+    '''
+    Plot 2014 vs 2100 using generalized beta^2 parameter estimates
+    '''
+    a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = a_params
+    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
+    L_MLE_c, k_MLE_c, x_MLE_c, min_c = c_params
+
+    for year in (1990, 2000, 2014, 2100):
+        a = polynomial_fn(year, a_MLE, b_MLE, c_MLE, d_MLE, e_MLE)
+        a = max(a, 1e-6)
+        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
+        #b = min(b, 0.11)
+        c = logistic_function(year, L_MLE_c, k_MLE_c, x_MLE_c) + min_c
+        #c = min(c, -1e-10)
+
+        exp_val = exp_fn(ages, a, b, c)
+        plt.plot(ages, exp_val, linewidth=2, label=str(year))
     
     plt.legend()
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_2100')

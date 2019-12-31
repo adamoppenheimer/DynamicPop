@@ -33,7 +33,7 @@ q_list = []
 scales = []
 start = 1970
 end = 2014
-smooth = 1
+smooth = 0
 years = np.linspace(start, end, end - start + 1)
 ages = np.linspace(14, 50, 37)
 for year in range(start, end + 1):
@@ -55,7 +55,9 @@ p_list = np.array(p_list)
 q_list = np.array(q_list)
 scales = np.array(scales)
 
-util.plot_params(start, end, smooth, a_list, b_list, p_list, q_list, scales, datatype='fertility')
+params_list = [('a', a_list), ('b', b_list), ('p', p_list), ('q', q_list), ('Scale', scales)]
+
+util.plot_params(start, end, smooth, params_list, datatype='fertility')
 
 #########################################
 #Fit a_list to logistic function
