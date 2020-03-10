@@ -82,6 +82,25 @@ def get_mort_pop_data(mort_dir, pop_dir):
 
     return mort_data, pop_data
 
+def predict_population(fert_rate, mort_rate, imm_rate, pop_data):
+    '''
+    Predict population as pop_{t+1} = pop_t(1 - mort_{t-1}))(1 - imm_{t-1}),
+    and setting pop_{t+1}_0 = pop_t * fert_t
+    '''
+    # First, calculate births
+    births = fert_rate * pop_data[14:51] / 2
+    births = np.sum(births)
+    # Second, calculate deaths
+    deaths = mort_rate * pop_data
+    deaths = np.roll(deaths, 1)
+    # Third, calculate predicted population before immigration
+    pred_pop = np.roll(pop_data, 1) - deaths
+    pred_pop[0] = births
+    # Fourth, account for immigration
+    pred_pop = pred_pop * (1 + imm_rate)
+
+    return pred_pop
+
 def calc_imm_resid(fert_data, mort_data, pop_data):
     '''
     Calculate immigration residual in year t
@@ -218,9 +237,17 @@ def polynomial_fn(xvals, a, b, c, d, e):
 def exp_fn(xvals, a, b, c):
     '''
     Exponential of the form:
-        y = a * e ** (b * x) + c
+        y = a - e ** ( - (b * x - c) )
     '''
-    exp_vals = a * e ** (b * xvals) + c
+    exp_vals = a - e ** ( - (b * xvals - c) )
+    return exp_vals
+
+def exponential_fn(xvals, a, b, c):
+    '''
+    Exponential of the form:
+        y = a * e ** (b * x - c)
+    '''
+    exp_vals = a * e ** (b * xvals - c)
     return exp_vals
 
 ####################
@@ -305,9 +332,14 @@ def crit_polyvals(params, *args):
         diff = np.sum( (xvals[:-10] - guess[:-10]) ** 2) \
                 + np.sum( (1 + (xvals[-10:] - guess[-10:]) ** 2) ** 10)
     elif datatype == 'mortality' and param == 'Infant Mortality':
-        # Weight most recently data more heavily
-        diff = np.sum( (xvals[:-30] - guess[:-30]) ** 2) \
-                + np.sum( (1 + (xvals[-30:] - guess[-30:]) ** 2) ** 30)
+        # Weight most recent data more heavily
+        impt_ages = 15
+        diff = np.sum( (xvals[:-impt_ages] - guess[:-impt_ages]) ** 2) ** 0.1 \
+                + np.sum( (1 + (xvals[-impt_ages:] - guess[-impt_ages:]) ** 2) ** 40)
+        # Add in penalty if predictions become negative
+        future_val = polynomial_fn(2100, a_0, b_0, c_0, d_0, e_0)
+        if future_val < 0:
+            diff += (1 + abs(future_val) ) ** 100
     
     else:
         diff = np.sum((xvals - guess) ** 2)
@@ -317,6 +349,21 @@ def crit_exp(params, *args):
     a_0, b_0, c_0 = params
     xvals, years, pop = args
     guess = exp_fn(years, a_0, b_0, c_0)
+    if isinstance(pop, bool):
+        xvals_compare = xvals
+        guess_compare = guess
+    else:
+        # Weight by population
+        xvals_compare = xvals * pop
+        guess_compare = (guess * pop)
+    diff = np.sum( (xvals_compare - guess_compare) ** 2)
+
+    return diff
+
+def crit_exponential(params, *args):
+    a_0, b_0, c_0 = params
+    xvals, ages, pop = args
+    guess = exponential_fn(ages, a_0, b_0, c_0)
     if isinstance(pop, bool):
         xvals_compare = xvals
         guess_compare = guess
@@ -341,7 +388,7 @@ def gamma_est(data, year, smooth, datatype, print_params=False, pop=False):
 
     if datatype == 'fertility':
         ages = np.linspace(14, 14 + count - 1, count)
-    elif datatype in ('mortality', 'population'):
+    elif datatype in ('mortality', 'mortality_beta', 'population'):
         ages = np.linspace(1e-2, 1e-2 + count - 1, count)
 
     beta_0 = var/mean
@@ -374,7 +421,7 @@ def gen_gamma_est(data, year, smooth, datatype, print_params=False, pop=False):
 
     if datatype == 'fertility':
         ages = np.linspace(14, 14 + count - 1, count)
-    elif datatype in ('mortality', 'population'):
+    elif datatype in ('mortality', 'mortality_beta', 'population'):
         ages = np.linspace(1e-2, 1e-2 + count - 1, count)
 
     # start with gamma distribution to get starting
@@ -418,7 +465,7 @@ def gen_gamma_est(data, year, smooth, datatype, print_params=False, pop=False):
 
     return alpha_MLE_c, beta_MLE_c, m_MLE_c, scale
 
-def gen_beta2_est(data, year, smooth, datatype, print_params=False, pop=False):
+def gen_beta2_est(data, year, smooth, datatype, print_params=False, pop=False, prev_estimates=False):
     '''
     Estimate parameters for generalized beta^2 distribution
     '''
@@ -426,36 +473,71 @@ def gen_beta2_est(data, year, smooth, datatype, print_params=False, pop=False):
 
     if datatype == 'fertility':
         ages = np.linspace(14, 14 + count - 1, count)
-    elif datatype in ('mortality', 'population'):
+    elif datatype in ('mortality', 'mortality_beta', 'population'):
         ages = np.linspace(1e-2, 1e-2 + count - 1, count)
 
-    # start with generalized gamma distribution to get starting
-    # values for generalized beta^2 distribution
-    alpha_MLE_c, beta_MLE_c, m_MLE_c, scale = gen_gamma_est(data, year, smooth, datatype,\
+    if prev_estimates:
+        a_0, b_0, p_0, q_0, scale = prev_estimates
+
+        params_init = np.array([a_0, b_0, p_0, q_0])
+
+        try:
+            results_cstr = opt.minimize(crit_gen_beta2, params_init,\
+                                        args=(data, ages, pop), method='L-BFGS-B',\
+                                        bounds=((1e-10, None), (1e-10, None),\
+                                        (1e-10, None), (1e-10, None)))
+            a_MLE_d, b_MLE_d, p_MLE_d, q_MLE_d = results_cstr.x
+        
+        except:
+            # If fails with previous estimates, try again using guesses
+            return gen_beta2_est(data, year, smooth, datatype, print_params, pop, prev_estimates=False)
+
+    else:
+        # start with generalized gamma distribution to get starting
+        # values for generalized beta^2 distribution
+        alpha_MLE_c, beta_MLE_c, m_MLE_c, scale = gen_gamma_est(data, year, smooth, datatype,\
                                                 print_params=print_params, pop=pop)
 
-    # begin generalized beta^2 estimation
-    q_0 = 50
-    a_0 = m_MLE_c
-    b_0 = q_0 ** (1 / a_0) * beta_MLE_c
-    p_0 = alpha_MLE_c / m_MLE_c
-    params_init = np.array([a_0, b_0, p_0, q_0])
+        q_guesses = [50] #np.linspace(1, 100, 100)#[50, 738]
+        param_guesses = []
+        crit_vals = []
+        for i, q_0 in enumerate(q_guesses):
+            #print('q guess:', i)
+            # begin generalized beta^2 estimation
+            #q_0 = 50
+            a_0 = m_MLE_c
+            b_0 = q_0 ** (1 / a_0) * beta_MLE_c
+            p_0 = alpha_MLE_c / m_MLE_c
+            params_init = np.array([a_0, b_0, p_0, q_0])
 
-    try:
-        results_cstr = opt.minimize(crit_gen_beta2, params_init,\
-                                    args=(data, ages, pop), method='L-BFGS-B',\
-                                    bounds=((1e-10, None), (1e-10, None),\
-                                    (1e-10, None), (1e-10, None)))
-        a_MLE_d, b_MLE_d, p_MLE_d, q_MLE_d = results_cstr.x
-    except:
-        # if the optimization fails, assign values
-        # from first step of optimizations, and assume
-        # q=10000
-        print('Generalized beta^2 failed, reverting to Generalized Gamma parameter estimates')
-        q_MLE_d = 10000
-        a_MLE_d = m_MLE_c
-        b_MLE_d = q_MLE_d ** (1 / a_MLE_d) * beta_MLE_c
-        p_MLE_d = alpha_MLE_c / m_MLE_c        
+            try:
+                results_cstr = opt.minimize(crit_gen_beta2, params_init,\
+                                            args=(data, ages, pop), method='L-BFGS-B',\
+                                            bounds=((1e-10, None), (1e-10, None),\
+                                            (1e-10, None), (1e-10, None)))
+                estimates = results_cstr.x
+                crit_val = results_cstr.fun
+                a_MLE_d, b_MLE_d, p_MLE_d, q_MLE_d = estimates
+                param_guesses.append(estimates)
+                crit_vals.append(crit_val)
+            except:
+                # if the optimization fails, assign values
+                # from first step of optimizations, and assume
+                # q=10000
+                print('Generalized beta^2 failed, reverting to Generalized Gamma parameter estimates')
+                q_MLE_d = 10000
+                a_MLE_d = m_MLE_c
+                b_MLE_d = q_MLE_d ** (1 / a_MLE_d) * beta_MLE_c
+                p_MLE_d = alpha_MLE_c / m_MLE_c
+
+                estimates = a_MLE_d, b_MLE_d, p_MLE_d, q_MLE_d
+                crit_val = crit_gen_beta2(estimates, (data, ages, pop))
+                param_guesses.append(estimates)
+                crit_vals.append(crit_val)
+        crit_array = np.array(crit_vals)
+        best_index = crit_vals.index(np.min(crit_array[np.nonzero(crit_array)]))
+        best_params = param_guesses[best_index] # Take care not to count crit_val = 0
+        a_MLE_d, b_MLE_d, p_MLE_d, q_MLE_d = best_params
 
     if print_params:
         print('a_MLE_d=', a_MLE_d, ' b_MLE_d=', b_MLE_d, ' p_MLE_d=', p_MLE_d, ' q_MLE_d=', q_MLE_d)
@@ -468,7 +550,7 @@ def gen_beta2_est(data, year, smooth, datatype, print_params=False, pop=False):
         scale = np.sum(data * pop) / np.sum(gen_beta2 * pop)
 
     plt.plot(ages, gen_beta2 * scale,\
-            linewidth=2, label='Generalized Gamma', color='r')
+            linewidth=2, label='Generalized Beta^2', color='r')
     plt.plot(ages, data, label='True Fertility ' + str(year))
     plt.legend()
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/' + str(year))
@@ -581,7 +663,7 @@ def exp_est(data, year, a_0, b_0, c_0, ages, smooth, datatype, param='', print_p
 
     if print_params:
         print('a_MLE=', a_MLE, 'b_MLE=', b_MLE, 'c_MLE=', c_MLE)
-    
+
     exp_vals = exp_fn(ages, a_MLE, b_MLE, c_MLE)
 
     plots = []
@@ -591,12 +673,169 @@ def exp_est(data, year, a_0, b_0, c_0, ages, smooth, datatype, param='', print_p
     plots[0][0].set_label(param)
     plots[1][0].set_label(param + ' estimate')
     plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/' + str(year))
+    if param == '':
+        plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/' + str(year))
+    else:
+        plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param + '_predicted')
     if show_plot:
         plt.show()
     plt.close()
 
     return a_MLE, b_MLE, c_MLE
+
+def exponential_est(data, year, a_0, b_0, c_0, ages, smooth, datatype, param='', print_params=False, show_plot=False, pop=False):
+    '''
+    Estimate parameters for polynomial function
+    '''
+    params_init = np.array([a_0, b_0, c_0])
+
+    results_cstr = opt.minimize(crit_exponential, params_init,\
+                    args=(np.array(data), ages, pop), method="L-BFGS-B")
+    a_MLE, b_MLE, c_MLE = results_cstr.x
+
+    if print_params:
+        print('a_MLE=', a_MLE, 'b_MLE=', b_MLE, 'c_MLE=', c_MLE)
+
+    exp_vals = exponential_fn(ages, a_MLE, b_MLE, c_MLE)
+
+    plots = []
+    plots.append(plt.plot(ages, data))
+    plots.append(plt.plot(ages, exp_vals))
+
+    plots[0][0].set_label(param)
+    plots[1][0].set_label(param + ' estimate')
+    plt.legend()
+    if param == '':
+        plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/' + str(year))
+    else:
+        plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param + '_predicted')
+    if show_plot:
+        plt.show()
+    plt.close()
+
+    return a_MLE, b_MLE, c_MLE
+
+################################################
+## Fertility/Mortality/Immigration parameters ##
+################################################
+
+def forecast_fertility(a_params, b_params, p_params, q_params, scale_params, year, ages):
+    '''
+    Using fertility parameter estimates, forecast
+    fertility rates for a set of ages in a particular year
+    '''
+    L_MLE_a, k_MLE_a, x_MLE_a, min_a = a_params
+    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
+    L_MLE_p, k_MLE_p, x_MLE_p, min_p = p_params
+    L_MLE_q, k_MLE_q, x_MLE_q, min_q = q_params
+    L_MLE_scale, k_MLE_scale, x_MLE_scale, min_scale = scale_params
+
+    year_adj_a = - (year - x_MLE_a) + x_MLE_a
+    a = logistic_function(year_adj_a, L_MLE_a, k_MLE_a, x_MLE_a) + min_a
+
+    b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
+
+    year_adj_p = - (year - x_MLE_p) + x_MLE_p
+    p = logistic_function(year_adj_p, L_MLE_p, k_MLE_p, x_MLE_p) + min_p
+
+    q = logistic_function(year, L_MLE_q, k_MLE_q, x_MLE_q) + min_q
+
+    year_adj_scale = - (year - x_MLE_scale) + x_MLE_scale
+    scale = logistic_function(year_adj_scale, L_MLE_scale, k_MLE_scale, x_MLE_scale) + min_scale
+
+    unscaled_forecast = gen_beta2_fun_pdf(ages, a, b, p, q)
+
+    scaled_forecast = unscaled_forecast * scale
+
+    return scaled_forecast
+
+def forecast_mortality(non_infant_params, infant_params, year, ages):
+    '''
+    Using mortality parameter estimates, forecast
+    mortality rates for a set of ages in a particular year
+    '''
+    a_params, b_params, p_params, q_params, scale_params = non_infant_params
+    L_MLE_a, k_MLE_a, x_MLE_a, min_a = a_params
+    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
+    L_MLE_p, k_MLE_p, x_MLE_p, min_p = p_params
+    L_MLE_q, k_MLE_q, x_MLE_q, min_q = q_params
+
+    L_MLE_scale, k_MLE_scale, x_MLE_scale, min_scale = scale_params
+
+    a = logistic_function(year, L_MLE_a, k_MLE_a, x_MLE_a) + min_a
+
+    b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
+
+    p = logistic_function(year, L_MLE_p, k_MLE_p, x_MLE_p) + min_p
+
+    year_adj_q = - (year - x_MLE_q) + x_MLE_q
+    q = logistic_function(year_adj_q, L_MLE_q, k_MLE_q, x_MLE_q) + min_q
+    
+    scale = logistic_function(year, L_MLE_scale, k_MLE_scale, x_MLE_scale) + min_scale
+
+    if np.isin(0, ages):
+        index_of_zero = list(ages).index(0)
+        ages[index_of_zero] = 1 # Set age to 1 to prevent errors
+
+        unscaled_forecast = gen_beta2_fun_pdf(ages, a, b, p, q)
+
+        scaled_forecast = unscaled_forecast * scale
+
+        a, b, c, d, e = infant_params
+        infant_forecast = polynomial_fn(year, a, b, c, d, e)
+        if infant_forecast < 0:
+            print('NEGATIVE INFANT MORTALITY RATE')
+        scaled_forecast[0] = infant_forecast
+
+        ages[index_of_zero] = 0 # Set age back to 0
+
+    else:
+        unscaled_forecast = gen_beta2_fun_pdf(ages, a, b, p, q)
+
+        scaled_forecast = unscaled_forecast * scale
+
+    return scaled_forecast
+
+def forecast_immigration(age_params, year, ages, transition_year):
+    '''
+    Using immigration parameter estimates, forecast
+    immigration rates for a set of ages in a particular year
+    '''
+    year_estimates = []
+    for age in ages:
+        constant, beta, a, b, c, g = age_params[age]
+        if year <= transition_year:
+            age_estimate = constant + beta * year
+        elif year <= transition_year + 15:
+            year_adj = year - transition_year
+            age_estimate = e ** (a * year_adj ** 2 + b * year_adj + c) + g
+        else:
+            year_adj = 15
+            age_estimate = e ** (a * year_adj ** 2 + b * year_adj + c) + g
+        year_estimates.append(age_estimate)
+    forecast = np.array(year_estimates)
+
+    return forecast
+
+def forecast(params, year, ages, datatype, options):
+    '''
+    Use forecast functions above to get forecasts
+    for a particular datatype
+    '''
+    # All forecasts converge by about 2050
+    if year > 2050:
+        year = 2050
+    if datatype == 'fertility':
+        a_params, b_params, p_params, q_params, scale_params = params
+        return forecast_fertility(a_params, b_params, p_params, q_params, scale_params, year, ages)
+
+    elif datatype == 'mortality':
+        non_infant_params, infant_params = params
+        return forecast_mortality(non_infant_params, infant_params, year, ages)
+
+    elif datatype == 'immigration':
+        transition_year = options['transition_year']
+        return forecast_immigration(params, year, ages, transition_year)
 
 ########################
 ## Plotting functions ##
@@ -621,81 +860,9 @@ def plot_params(start, end, smooth, params_list, datatype):
         plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param_list[0])
         plt.close()
 
-def plot_data_transition_gen_beta2_estimates(a_params, b_params, p_params, q_params, scale_params, start, end, ages, smooth, datatype):
+def plot_data_transition(data, ages, start, end, smooth, datatype):
     '''
-    Plot data transition using generalized beta^2 parameter estimates
-    '''
-    L_MLE_a, k_MLE_a, x_MLE_a, min_a = a_params
-    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
-    L_MLE_p, k_MLE_p, x_MLE_p, min_p = p_params
-    L_MLE_q, k_MLE_q, x_MLE_q, min_q = q_params
-    if datatype == 'fertility':
-        L_MLE_scale, k_MLE_scale, x_MLE_scale, min_scale = scale_params
-    elif datatype == 'population':
-        a_MLE_scale, b_MLE_scale, c_MLE_scale, d_MLE_scale, e_MLE_scale = scale_params
-
-    NUM_COLORS = end + 1 - start
-
-    cm = plt.get_cmap('Blues')
-    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
-    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
-
-    for year in range(start, end + 1):
-        year_adj_a = - (year - x_MLE_a) + x_MLE_a
-        a = logistic_function(year_adj_a, L_MLE_a, k_MLE_a, x_MLE_a) + min_a
-        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
-        year_adj_p = - (year - x_MLE_p) + x_MLE_p
-        p = logistic_function(year_adj_p, L_MLE_p, k_MLE_p, x_MLE_p) + min_p
-        q = logistic_function(year, L_MLE_q, k_MLE_q, x_MLE_q) + min_q
-        if datatype == 'fertility':
-            year_adj_scale = - (year - x_MLE_scale) + x_MLE_scale
-            scale = logistic_function(year_adj_scale, L_MLE_scale, k_MLE_scale, x_MLE_scale) + min_scale
-        elif datatype == 'population':
-            scale = polynomial_fn(year, a_MLE_scale, b_MLE_scale, c_MLE_scale, d_MLE_scale, e_MLE_scale)
-
-        gen_beta2 = gen_beta2_fun_pdf(ages, a, b, p, q)
-        plt.plot(ages, gen_beta2 * scale, linewidth=2)
-    
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_predicted')
-    plt.close()
-
-def plot_data_transition_exp_estimates(a_params, b_params, c_params, start, end, ages, smooth, datatype):
-    '''
-    Plot data transition using generalized beta^2 parameter estimates
-    '''
-    a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = a_params
-    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
-    L_MLE_c, k_MLE_c, x_MLE_c, min_c = c_params
-
-    NUM_COLORS = end + 1 - start
-
-    cm = plt.get_cmap('Blues')
-    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
-    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
-
-    for year in range(start, end + 1):
-        a = polynomial_fn(year, a_MLE, b_MLE, c_MLE, d_MLE, e_MLE)
-        a = max(a, 1e-6)
-        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
-        #b = min(b, 0.11)
-        c = logistic_function(year, L_MLE_c, k_MLE_c, x_MLE_c) + min_c
-        #c = min(c, -1e-10)
-
-        exp_val = exp_fn(ages, a, b, c)
-        plt.plot(ages, exp_val, linewidth=2)
-    
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_predicted')
-    plt.close()
-
-def plot_data_transition(data, start, end, ages, smooth, datatype):
-    '''
-    Plot data transition using generalized gamma parameter estimates
+    Plot true data transition over time
     '''
     NUM_COLORS = end + 1 - start
 
@@ -713,19 +880,30 @@ def plot_data_transition(data, start, end, ages, smooth, datatype):
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_true')
     plt.close()
 
-def overlay_estimates(data, a_params, b_params, p_params, q_params, scale_params, start, end, ages, smooth, datatype):
+def plot_forecast_transition(params, ages, start, end, smooth, datatype, options=False):
     '''
-    Plot data transition using generalized beta^2 parameter estimates
+    Plot forecast transition over time
     '''
-    L_MLE_a, k_MLE_a, x_MLE_a, min_a = a_params
-    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
-    L_MLE_p, k_MLE_p, x_MLE_p, min_p = p_params
-    L_MLE_q, k_MLE_q, x_MLE_q, min_q = q_params
-    if datatype == 'fertility':
-        L_MLE_scale, k_MLE_scale, x_MLE_scale, min_scale = scale_params
-    elif datatype == 'population':
-        a_MLE_scale, b_MLE_scale, c_MLE_scale, d_MLE_scale, e_MLE_scale = scale_params
+    NUM_COLORS = end + 1 - start
 
+    cm = plt.get_cmap('Blues')
+    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
+    scalarMap = mplcm.ScalarMappable(norm=cNorm, cmap=cm)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(NUM_COLORS)])
+
+    for year in range(start, end + 1):
+        forecast_estimates = forecast(params, year, ages, datatype, options)
+        plt.plot(ages, forecast_estimates, linewidth=2)
+
+    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_predicted')
+    plt.close()
+
+def overlay_estimates(data, params, ages, start, end, smooth, datatype, options=False):
+    '''
+    Compare forecast and true data transitions over time
+    '''
     NUM_COLORS = end + 1 - start
 
     cm1 = plt.get_cmap('Blues')
@@ -738,20 +916,8 @@ def overlay_estimates(data, a_params, b_params, p_params, q_params, scale_params
     ax.set_prop_cycle(color=[scalarMap1.to_rgba(i) for i in range(NUM_COLORS)] + [scalarMap2.to_rgba(i) for i in range(NUM_COLORS)])
 
     for year in range(start, end + 1):
-        year_adj_a = - (year - x_MLE_a) + x_MLE_a
-        a = logistic_function(year_adj_a, L_MLE_a, k_MLE_a, x_MLE_a) + min_a
-        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
-        year_adj_p = - (year - x_MLE_p) + x_MLE_p
-        p = logistic_function(year_adj_p, L_MLE_p, k_MLE_p, x_MLE_p) + min_p
-        q = logistic_function(year, L_MLE_q, k_MLE_q, x_MLE_q) + min_q
-        if datatype == 'fertility':
-            year_adj_scale = - (year - x_MLE_scale) + x_MLE_scale
-            scale = logistic_function(year_adj_scale, L_MLE_scale, k_MLE_scale, x_MLE_scale) + min_scale
-        elif datatype == 'population':
-            scale = polynomial_fn(year, a_MLE_scale, b_MLE_scale, c_MLE_scale, d_MLE_scale, e_MLE_scale)
-
-        gen_beta2 = gen_beta2_fun_pdf(ages, a, b, p, q)
-        plt.plot(ages, gen_beta2 * scale, linewidth=2)
+        forecast_estimates = forecast(params, year, ages, datatype, options)
+        plt.plot(ages, forecast_estimates, linewidth=2)
 
     for year in range(start, end + 1):
         data_yr = rolling_avg_year(data, year, smooth)
@@ -760,95 +926,14 @@ def overlay_estimates(data, a_params, b_params, p_params, q_params, scale_params
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_overlay_predicted')
     plt.close()
 
-def overlay_estimates_mort(data, a_params, b_params, c_params, start, end, ages, smooth, datatype):
+def plot_2100(params, ages, smooth, datatype, options=False):
     '''
-    Plot data transition using generalized beta^2 parameter estimates
+    Plot 2014 vs 2100 using forecasts
     '''
-    a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = a_params
-    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
-    L_MLE_c, k_MLE_c, x_MLE_c, min_c = c_params
+    for year in (1990, 2000, 2014, 2050, 2100):
+        forecast_estimates = forecast(params, year, ages, datatype, options)
+        plt.plot(ages, forecast_estimates, linewidth=2, label=str(year))
 
-    NUM_COLORS = end + 1 - start
-
-    cm1 = plt.get_cmap('Blues')
-    cNorm  = colors.Normalize(vmin=0, vmax=NUM_COLORS-1)
-    scalarMap1 = mplcm.ScalarMappable(norm=cNorm, cmap=cm1)
-    cm2 = plt.get_cmap('Reds')
-    scalarMap2 = mplcm.ScalarMappable(norm=cNorm, cmap=cm2)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_prop_cycle(color=[scalarMap1.to_rgba(i) for i in range(NUM_COLORS)] + [scalarMap2.to_rgba(i) for i in range(NUM_COLORS)])
-
-    for year in range(start, end + 1):
-        a = polynomial_fn(year, a_MLE, b_MLE, c_MLE, d_MLE, e_MLE)
-        a = max(a, 1e-6)
-        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
-        #b = min(b, 0.11)
-        c = logistic_function(year, L_MLE_c, k_MLE_c, x_MLE_c) + min_c
-        #c = min(c, -1e-10)
-
-        exp_val = exp_fn(ages, a, b, c)
-        plt.plot(ages, exp_val, linewidth=2)
-
-    for year in range(start, end + 1):
-        data_yr = rolling_avg_year(data, year, smooth)
-        ax.plot(ages[:len(data_yr)], data_yr, linewidth=2)
-
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_overlay_predicted')
-    plt.close()
-
-def plot_2100(a_params, b_params, p_params, q_params, scale_params, ages, smooth, datatype):
-    '''
-    Plot 2014 vs 2100 using generalized beta^2 parameter estimates
-    '''
-    L_MLE_a, k_MLE_a, x_MLE_a, min_a = a_params
-    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
-    L_MLE_p, k_MLE_p, x_MLE_p, min_p = p_params
-    L_MLE_q, k_MLE_q, x_MLE_q, min_q = q_params
-    if datatype == 'fertility':
-        L_MLE_scale, k_MLE_scale, x_MLE_scale, min_scale = scale_params
-    elif datatype == 'population':
-        a_MLE_scale, b_MLE_scale, c_MLE_scale, d_MLE_scale, e_MLE_scale = scale_params
-
-    for year in (1990, 2000, 2014, 2100):
-        year_adj_a = - (year - x_MLE_a) + x_MLE_a
-        a = logistic_function(year_adj_a, L_MLE_a, k_MLE_a, x_MLE_a) + min_a
-        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
-        year_adj_p = - (year - x_MLE_p) + x_MLE_p
-        p = logistic_function(year_adj_p, L_MLE_p, k_MLE_p, x_MLE_p) + min_p
-        q = logistic_function(year, L_MLE_q, k_MLE_q, x_MLE_q) + min_q
-        if datatype == 'fertility':
-            year_adj_scale = - (year - x_MLE_scale) + x_MLE_scale
-            scale = logistic_function(year_adj_scale, L_MLE_scale, k_MLE_scale, x_MLE_scale) + min_scale
-        elif datatype == 'population':
-            scale = polynomial_fn(year, a_MLE_scale, b_MLE_scale, c_MLE_scale, d_MLE_scale, e_MLE_scale)
-
-        gen_beta2 = gen_beta2_fun_pdf(ages, a, b, p, q)
-        plt.plot(ages, gen_beta2 * scale, linewidth=2, label=str(year))
-    
-    plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_2100')
-    plt.close()
-
-def plot_2100_mort(a_params, b_params, c_params, ages, smooth, datatype):
-    '''
-    Plot 2014 vs 2100 using generalized beta^2 parameter estimates
-    '''
-    a_MLE, b_MLE, c_MLE, d_MLE, e_MLE = a_params
-    L_MLE_b, k_MLE_b, x_MLE_b, min_b = b_params
-    L_MLE_c, k_MLE_c, x_MLE_c, min_c = c_params
-
-    for year in (1990, 2000, 2014, 2100):
-        a = polynomial_fn(year, a_MLE, b_MLE, c_MLE, d_MLE, e_MLE)
-        a = max(a, 1e-6)
-        b = logistic_function(year, L_MLE_b, k_MLE_b, x_MLE_b) + min_b
-        #b = min(b, 0.11)
-        c = logistic_function(year, L_MLE_c, k_MLE_c, x_MLE_c) + min_c
-        #c = min(c, -1e-10)
-
-        exp_val = exp_fn(ages, a, b, c)
-        plt.plot(ages, exp_val, linewidth=2, label=str(year))
-    
     plt.legend()
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_2100')
     plt.close()
