@@ -80,12 +80,8 @@ def get_Kt(b_sp1, p):
     elif b_sp1.ndim == 2:  # transition path case
         omega_sm1tm1 = np.append(p.omega_m1.reshape((p.S, 1)),
                                  p.omega_tp[:, :p.T2], axis=1)
-        omega_stm1 = np.vstack((p.omega_tp[1:, :],
+        omega_stm1 = np.vstack((omega_sm1tm1[1:, :],
                                 np.zeros((1, p.T2 + 1))))
-        # print('i_st[1:, :p.T2 + 1] shape should be (79, 321):',
-        #       p.i_st[1:, :p.T2 + 1].shape)
-        # print('np.zeros((1, p.T2 + 1)) shape should be (1, 321):',
-        #       np.zeros((1, p.T2 + 1)).shape)
         i_st = np.vstack((p.i_st[1:, :p.T2 + 1],
                           np.zeros((1, p.T2 + 1))))
         K_st = ((1 / (1 + p.g_n_tp[:p.T2 + 1])) *
@@ -212,7 +208,7 @@ def get_NXt(b_sp1tp1, p):
                 (np.append(p.i_ss[1:], 0.0) *
                  np.append(p.omega_ss[1:], 0.0) * b_sp1tp1).sum())
     elif b_sp1tp1.ndim == 2:  # transition path case
-        omega_sp1t = np.append(p.omega_tp[1:, :p.T2 + 1],
+        omega_sp1t = np.append(p.omega_st[1:, :p.T2 + 1],
                                np.zeros((1, p.T2 + 1)), axis=0)
         i_stp1 = np.append(p.i_st, p.i_st[:, -1].reshape((p.S, 1)),
                            axis=1)

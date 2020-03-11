@@ -35,8 +35,8 @@ class parameters:
         self.E = int(20)
         self.S = int(80)
         self.yrs_in_per = 80 / self.S
-        self.T1 = int(round(2.0 * self.S))
-        self.T2 = int(round(3.0 * self.S))
+        self.T1 = int(round(3.0 * self.S))
+        self.T2 = int(round(4.0 * self.S))
 
         '''
         Household parameters
@@ -125,7 +125,9 @@ class parameters:
         self.i_ss = imm_rates_mat.T[:, self.T1]
         self.omega_ss = omega_ss
         self.omega_tp = \
-            np.append(omega_tp.T, omega_ss.reshape((self.S, 1)), axis=1)
+            np.append(omega_tp.T, np.tile(omega_ss.reshape((self.S, 1)),
+                                          (1, self.T2 - self.T1 + 1)),
+                      axis=1)
         self.rho_m1 = mort_rates
         self.omega_m1 = omega_m1
         self.g_n_ss = g_n_ss
@@ -134,9 +136,8 @@ class parameters:
                       g_n_ss * np.ones((1, self.T2 - self.T1 +
                                         1)), axis=1).flatten()
         self.rho_st = np.tile(self.rho_ss.reshape((self.S, 1)),
-                              (1, self.T2 + self.S))
-        self.i_st = np.append(imm_rates_mat.T,
-                              self.i_ss.reshape((self.S, 1)), axis=1)
+                              (1, self.T2 + 1))
+        self.i_st = imm_rates_mat.T[:, :self.T2 + 1]
 
         '''
         Industry parameters
@@ -173,7 +174,7 @@ class parameters:
                      errors. Otherwise, use percent deviation form.
         ----------------------------------------------------------------
         '''
-        self.SS_solve = True
+        self.SS_solve = False
         self.SS_OutTol = 1e-13
         self.SS_EulTol = 1e-13
         self.SS_graphs = True

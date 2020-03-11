@@ -25,6 +25,7 @@ import aggregates as aggr
 import households as hh
 import firms
 import utilities as utils
+import scipy.optimize as opt
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 from mpl_toolkits.mplot3d import Axes3D
@@ -256,6 +257,17 @@ def get_TP(p, ss_output, graphs):
     output_dir = os.path.join(cur_path, output_fldr)
     if not os.access(output_dir, os.F_OK):
         os.makedirs(output_dir)
+    # Excel_header_str = \
+    #     ('Variables are,r_path_nn_init,w_path_nn_init,Y1path_init,' +
+    #      'Y2path_init,Y3path_init,KLrat1_path,KLrat2_path,' +
+    #      'KLrat3_path,K1_path,K2_path,K3_path,L1_path,L2_path,' +
+    #      'L3_path,p1_path_nn,p2_path_nn,p3_path_nn,p_path_nn,' +
+    #      'p1_path_norm,p2_path_norm,p3_path_norm,rpath_norm,' +
+    #      'wpath_norm,C1_path,C2_path,C3_path,K_dem_path,K_sup_path,' +
+    #      'eps_r_path,L_dem_path,L_sup_path,eps_w_path,Y1_dem_path,' +
+    #      'Y2_dem_path,Y3_dem_path,Y1_sup_path,Y2_sup_path,' +
+    #      'Y3_sup_path,eps_Y1_path,eps_Y2_path,eps_Y3_path,dist,' +
+    #      'r_path_nn_new,w_path_nn_new,Y1path_new,Y2path_new,Y3path_new')
 
     start_time = time.clock()
 
@@ -322,8 +334,38 @@ def get_TP(p, ss_output, graphs):
             (np.absolute(np.hstack((bs_err_path.max(axis=0),
              ns_err_path.max(axis=0)))).max()))
         if dist > p.TP_OutTol:
-            rBQpath_init = (p.xi_TP * rBQpath_new +
-                            (1 - p.xi_TP) * rBQpath_init)
+            rBQpath_init = rBQpath_new
+        # new_data = \
+        #     np.vstack((rpath_nn_init[:p.T2 + 1].reshape((1, p.T2 + 1)),
+        #                wpath_nn_init[:p.T2 + 1].reshape((1, p.T2 + 1)),
+        #                Ympath_init[:, :p.T2 + 1],
+        #                KLratm_path[:, :p.T2 + 1], Km_path[:, :p.T2 + 1],
+        #                Lm_path[:, :p.T2 + 1], pm_path_nn[:, :p.T2 + 1],
+        #                p_path_nn[:p.T2 + 1].reshape((1, p.T2 + 1)),
+        #                pm_path_norm[:, :p.T2 + 1],
+        #                rpath_norm[:p.T2 + 1].reshape((1, p.T2 + 1)),
+        #                wpath_norm[:p.T2 + 1].reshape((1, p.T2 + 1)),
+        #                Cm_path, K_dem_path.reshape((1, p.T2 + 1)),
+        #                K_sup_path.reshape((1, p.T2 + 1)),
+        #                eps_r_path.reshape((1, p.T2 + 1)),
+        #                L_dem_path.reshape((1, p.T2 + 1)),
+        #                L_sup_path.reshape((1, p.T2 + 1)),
+        #                eps_w_path.reshape((1, p.T2 + 1)),
+        #                Ym_dem_path, Ym_sup_path, eps_Ym_path,
+        #                dist * np.ones((1, p.T2 + 1)),
+        #                rwYmpath_new[:, :p.T2 + 1]))
+        # if iter_TPI == 1:
+        #     variables, periods = new_data.shape
+        #     data_by_iter = new_data.reshape((variables, periods, 1))
+        # else:
+        #     data_by_iter = \
+        #         np.append(data_by_iter,
+        #                   new_data.reshape((variables, periods, 1)),
+        #                   axis=2)
+        # Excel_filename = 'Excel_output' + str(iter_TPI) + '.csv'
+        # Excel_path = os.path.join(output_dir, Excel_filename)
+        # np.savetxt(Excel_path, new_data, delimiter=',',
+        #            header=Excel_header_str)
 
     tpi_time = time.clock() - start_time
     # Print TPI computation time
@@ -442,7 +484,7 @@ def create_graphs(tpi_output, p):
     tvec = np.arange(0, p.T2 + 1)
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
-    plt.plot(tvec, r_path[:p.T2 + 1], label=r'$r_t$')
+    plt.plot(tvec, r_path, label=r'$r_t$')
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -457,7 +499,7 @@ def create_graphs(tpi_output, p):
     # Plot time path of wage
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
-    plt.plot(tvec, w_path[:p.T2 + 1], label=r'$\hat{w}_t$')
+    plt.plot(tvec, w_path, label=r'$\hat{w}_t$')
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -472,7 +514,7 @@ def create_graphs(tpi_output, p):
     # Plot time path of total bequests
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
-    plt.plot(tvec, BQ_path[:p.T2 + 1], label=r'$\hat{BQ}_t$')
+    plt.plot(tvec, BQ_path, label=r'$\hat{BQ}_t$')
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
