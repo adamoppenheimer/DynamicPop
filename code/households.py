@@ -741,7 +741,7 @@ def get_cnb_paths(r_path, w_path, BQ_path, cnb_args):
             b_s_err_path[-1, 1]
             c_S0 = get_cs_vec(b_S0, b_Sp10, n_S0, r0, w0, BQ0, p)
             c_s_path[-1, 0] = c_S0
-            # print('Solved incomplete lifetime rp=', rp)
+            print('Solved incomplete lifetime rp=', rp)
         else:
             # 1<rp<S chooses b_{s+1} and n_s and has incomplete lives
             DiagMask = np.eye(rp, dtype=bool)
@@ -763,31 +763,40 @@ def get_cnb_paths(r_path, w_path, BQ_path, cnb_args):
             n_s_err_path[-rp:, :rp] += DiagMask * n_errors
             b_s_err_path[-rp:, 1:rp + 1] += DiagMask * b_errors
             c_s_path[-rp:, :rp] += DiagMask * c_s
-            # print('Solved incomplete lifetime rp=', rp)
+            print('Solved incomplete lifetime rp=', rp)
 
     # Solve the complete remaining lifetime decisions of agents born
     # between period t=0 and t=T2
-    for t in range(p.T2 + 1):
-        DiagMask = np.eye(p.S, dtype=bool)
-        if t == 0:
-            n_s_guess = np.hstack((n_ss[0],
-                                   np.diag(n_s_path[1:,
-                                                    t:t + p.S - 1])))
-        else:
-            n_s_guess = np.diag(n_s_path[:, t - 1:t + p.S - 1])
-        b_sp1_guess = np.diag(b_s_path[1:, t:t + p.S])
-        nb_guess = np.hstack((n_s_guess, b_sp1_guess))
-        b_1 = 0.0
-        rho_st = np.diag(p.rho_st[:, t:t + p.S])
-        c_s, n_s, b_s, n_errors, b_errors = \
-            get_cnb_vecs(nb_guess, b_1, r_path[t:t + p.S],
-                         w_path[t:t + p.S], BQ_path[t:t + p.S],
-                         rho_st, p.TP_EulDif, p, p.TP_EulTol)
-        n_s_path[:, t:t + p.S] += DiagMask * n_s
-        b_s_path[1:, t + 1:t + p.S + 1] += DiagMask * b_s[1:]
-        n_s_err_path[:, t:t + p.S] += DiagMask * n_errors
-        b_s_err_path[1:, t + 1:t + p.S + 1] += DiagMask * b_errors
-        c_s_path[:, t:t + p.S] += DiagMask * c_s
-        # print('Solved complete lifetime t=', t)
+    # for t in range(p.T2 + 1):
+    #     DiagMask = np.eye(p.S, dtype=bool)
+    #     if t == 0:
+    #         n_s_guess = np.hstack((n_ss[0],
+    #                                np.diag(n_s_path[1:,
+    #                                                 t:t + p.S - 1])))
+    #     else:
+    #         n_s_guess = np.diag(n_s_path[:, t - 1:t + p.S - 1])
+    #     b_sp1_guess = np.diag(b_s_path[1:, t:t + p.S - 1])
+    #     nb_guess = np.hstack((n_s_guess, b_sp1_guess))
+    #     b_1 = 0.0
+    #     c_s, n_s, b_sp1, n_errors, b_errors, c_ms = \
+    #         get_cnb_vecs(nb_guess, b_1, r_path[t:t + p.S],
+    #                      w_path[t:t + p.S], pm_path[:, t:t + p.S],
+    #                      p.TP_EulDif, p, p.TP_EulTol)
+    #     n_s_path[:, t:t + p.S] = \
+    #         DiagMaskn * n_s + n_s_path[:, t:t + p.S]
+    #     b_s_path[1:, t + 1:t + p.S] = (DiagMaskb * b_sp1 +
+    #                                    b_s_path[1:, t + 1:t + p.S])
+    #     n_s_err_path[:, t:t + p.S] = (DiagMaskn * n_errors +
+    #                                   n_s_err_path[:, t:t + p.S])
+    #     b_s_err_path[1:, t + 1:t + p.S] = (DiagMaskb * b_errors +
+    #                                        b_s_err_path[1:,
+    #                                                     t + 1:t + p.S])
+    #     c_s_path[:, t:t + p.S] = DiagMaskn * c_s + c_s_path[:,
+    #                                                         t:t + p.S]
+    #     for m in range(p.M):
+    #         c_ms_path[m, :, t:t + p.S] = (DiagMaskn * c_ms[m, :] +
+    #                                       c_ms_path[m, :, t:t + p.S])
+    #     # print('Solved complete lifetime t=', t)
 
-    return c_s_path, n_s_path, b_s_path, n_s_err_path, b_s_err_path
+    # return (c_s_path, n_s_path, b_s_path, c_ms_path, n_s_err_path,
+    #         b_s_err_path)
