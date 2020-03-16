@@ -28,15 +28,15 @@ def get_wt(r_t, p):
     Solve for wage w_t given assumed interest rate r_t
     --------------------------------------------------------------------
     INPUTS:
-    r_t = scalar > 0 or (T2+S-1,) vector, steady-state interest rate or
+    r_t = scalar > 0 or (T2+S,) vector, steady-state interest rate or
           time path of interest rates
-    p   = parameters object, exogenous parameters of the model
+    p   = parameters class object
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    w_t = scalar or (T2+S-1,) vector, steady-state wage or time path of
-          wages
+    w_t = scalar or (T2+S,) vector, steady-state wage w or time path of
+          wages w_t
 
     RETURNS: w_t
     --------------------------------------------------------------------
@@ -54,17 +54,17 @@ def get_rt(K_t, L_t, p):
     aggregate labor L_t
     --------------------------------------------------------------------
     INPUTS:
-    K_t = scalar > 0 or (T2+S-1,) vector, steady-state aggregate capital
-          stock or time path of aggregate capital
-    L_t = scalar > 0 or (T2+S-1,) vector, steady-state aggregate labor
-          or time path of aggregate labor
-    p   = parameters object, exogenous parameters of the model
+    K_t = scalar > 0 or (T2+1,) vector, steady-state aggregate capital
+          stock K or time path of aggregate capital K_t
+    L_t = scalar > 0 or (T2+1,) vector, steady-state aggregate labor L
+          or time path of aggregate labor L_t
+    p   = parameters class object
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    r_t = scalar or (T2+S-1,) vector, steady-state interest rate or time
-          path of interest rate
+    r_t = scalar or (T2+1,) vector, steady-state interest rate r or time
+          path of interest rate r_t
 
     RETURNS: r_t
     --------------------------------------------------------------------
@@ -81,17 +81,17 @@ def get_Yt(K_t, L_t, p):
     aggregate labor L_t
     --------------------------------------------------------------------
     INPUTS:
-    K_t = scalar > 0 or (T2+S-1,) vector, steady-state aggregate capital
-          stock or time path of aggregate capital
-    L_t = scalar > 0 or (T2+S-1,) vector, steady-state aggregate labor
-          or time path of aggregate labor
-    p   = parameters object, exogenous parameters of the model
+    K_t = scalar > 0 or (T2+1,) vector, steady-state aggregate capital
+          stock K or time path of aggregate capital K_t
+    L_t = scalar > 0 or (T2+1,) vector, steady-state aggregate labor L
+          or time path of aggregate labor L_t
+    p   = parameters class object
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    Y_t = scalar or (T2+S-1,) vector, steady-state output or time path
-          of output
+    Y_t = scalar or (T2+1,) vector, steady-state aggregate output Y or
+          time path of aggregate output Y_t
 
     RETURNS: Y_t
     --------------------------------------------------------------------

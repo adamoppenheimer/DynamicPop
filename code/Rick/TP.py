@@ -2,8 +2,8 @@
 ------------------------------------------------------------------------
 This module contains the functions used to solve the transition path
 equilibrium using time path iteration (TPI) for the model with S-period
-lived agents and endogenous labor supply from Chapter 4 of the OG
-textbook.
+lived agents, endogenous labor supply, non-constant demographics,
+bequests, and labor productivity growth.
 
 This Python module imports the following module(s):
     aggregates.py
@@ -13,8 +13,7 @@ This Python module imports the following module(s):
 
 This Python module defines the following function(s):
     get_path()
-    inner_loop()
-    get_TPI()
+    get_TP()
     create_graphs()
 ------------------------------------------------------------------------
 '''
@@ -65,7 +64,7 @@ def get_path(x1, xT, T, spec):
     cc    = scalar, constant coefficient in quadratic function
     bb    = scalar, coefficient on t in quadratic function
     aa    = scalar, coefficient on t^2 in quadratic function
-    xpath = (T,) vector, parabolic xpath from x1 to xT
+    xpath = (T,) vector, linear or parabolic xpath from x1 to xT
 
     FILES CREATED BY THIS FUNCTION: None
 
@@ -92,171 +91,82 @@ def get_TP(p, ss_output, graphs):
     --------------------------------------------------------------------
     INPUTS:
     p         = parameters class object
-    ss_output = dict, steady-state output
+    ss_output = length 18 dictionary, steady-state output
     graphs    = boolean, =True if generate transition path equilibrium
                 graphs
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION:
-        aggr.get_K()
         get_path()
-        firms.get_r()
-        firms.get_w()
-        inner_loop()
-        solve_bn_path()
-        aggr.get_L()
-        aggr.get_Y()
-        aggr.get_C()
+        firms.get_wt()
+        hh.get_cnb_paths()
+        aggr.get_Lt()
+        aggr.get_Kt()
+        firms.get_rt()
+        aggr.get_BQt()
         utils.print_time()
+        firms.get_Yt()
+        aggr.get_Ct()
+        aggr.get_It()
+        aggr.get_NXt()
+        creat_graphs()
 
     OBJECTS CREATED WITHIN FUNCTION:
-    start_time        = scalar, current processor time in seconds (float)
-    r_ss              = scalar > 0, steady-state interest rate
-    w_ss              = scalar > 0, steady-state wage
-    Km_ss             = (M,) vector, steady-state capital across
-                        industries
-    rpath_init        = (T2+S,) vector, initial guess of time path of
-                        the interest rate
-    wpath_init        = (T2+S,) vector, initial guess of time path of
-                        the wage
-    r0                = scalar > 0,
-    w0                = scalar > 0,
-    rwpath_init       = (2 * (T2 + S),) vector,
-    iter_TPI          = integer >= 0,
-    dist              =
-    cnb_args          = length 2 tuple,
-    KLrat_path        = (M, T2+S) matrix,
-    pm_path           = (M, T2+S) matrix,
-    c_s_path          = (S, T2+S) matrix,
-    n_s_path          = (S, T2+S) matrix,
-    b_s_path          = (S, T2+S) matrix,
-    c_ms_path         = (M, S, T2+S) array,
-    n_s_err_path      = (S, T2+S) matrix,
-    b_s_err_path      = (S, T2+S) matrix,
-    C_m_path          = (M, T2+1) matrix,
-    K_m_path          = (M, T2+1) matrix,
-    L_m_path          = (M, T2+1) matrix,
-    t_ind             = integer >= 0,
-    C_mtm1            = (M,) vector,
-    K_mtm1            = (M,) vector,
-    L_mtm1            = (M,) vector,
-    K_dem_path        = (T2+1,) vector,
-    K_sup_path        = (T2+1,) vector,
-    L_dem_path        = (T2+1,) vector,
-    L_sup_path        = (T2+1,) vector,
-    KL_dem_path       = (2 * (T2 + 1),) vector,
-    KL_sup_path       = (2 * (T2 + 1),) vector,
-    K_dem_path_pctdif = (T2+1,) vector,
-    L_dem_path_pctdif = (T2+1,) vector,
-    rpath_new         =
-    wpath_new         =
+    start_time   = scalar, current processor time in seconds (float)
+    r_ss         = scalar > -delta, steady-state interest rate
+    BQ_ss        = scalar > 0, steady-state total bequests
+    r_path_init  = (T2+S,) vector, initial guess of interest rate time
+                   path
+    BQ_path_init = (T2+S,) vector, initial guess of total bequests time
+                   path
+    r_0          = scalar > -delta, initial period interest rate guess
+    BQ_0         = scalar > 0, initial period total bequests guess
+    rBQpath_init = (2, T2+S) matrix, initial guess for time paths of
+                   interest rate and total bequests
+    iter_TPI     = integer >= 0, iteration number index for TPI
+    dist         = scalar > 0, distance measure of
+                   (rBQpath_new - rBQpath_init)
+    cnb_args     = length 2 tuple, (ss_output, p) arguments passed to
+                   hh.get_cnb_paths()
+    w_path       = (T2+S,) vector, time path of wages
+    cs_path      = (S, T2+S) matrix, time path of household consumption
+                   by age
+    ns_path      = (S, T2+S) matrix, time path of household labor supply
+                   by age
+    bs_path      = (S+1, T2+S+1) matrix, time path of household savings
+                   and wealth by age
+    ns_err_path  = (S, T2+S) matrix, time path of Euler errors by age
+                   from household optimal labor supply decisions
+    bs_err_path  = (S+1, T2+S+1) matrix, time path of Euler errors by
+                   age from household optimal savings decisions
+    L_path       = (T2+1,) vector, time path of aggregate labor
+    K_path       = (T2+1,) vector, time path of aggregate capital stock
+    r_path_new   = (T2+S,) vector, time path of interest rates implied
+                   by household and firm optimization
+    BQ_Path_new  = (T2+S,) vector, time path of total bequests implied
+                   by household and firm optimization
+    rBQpath_new  = (2, T2+S) matrix, time path of interest rates and
+                   total bequests implied by household and firm
+                   optimization
+    tpi_time     = scalar, elapsed time for TPI computation
+    r_path       = (T2+S,) vector, equilibrium interest rate time path
+    BQ_path      = (T2+S,) vector, equilibrium total bequests time path
+    Y_path       = (T2+1,) vector, equilibrium aggregate output time
+                   path
+    C_path       = (T2+1,) vector, equilibrium aggregate consumption
+                   time path
+    I_path       = (T2+1,) vector, equilibrium aggregate investment time
+                   path
+    NX_path      = (T2+1,) vector, equilibrium net exports time path
+    tpi_output   = length 17 dictionary, tpi output objects {cs_path,
+                   ns_path, bs_path, ns_err_path,  bs_err_path, r_path,
+                   w_path,  BQ_path, K_path,  L_path,  Y_path, C_path,
+                   I_path, NX_path, dist, iter_TPI, tpi_time}
 
-    S             = integer in [3,80], number of periods an individual
-                    lives
-    T1            = integer > S, number of time periods until steady
-                    state is assumed to be reached
-    T2            = integer > T1, number of time periods after which
-                    steady-state is forced in TPI
-    beta          = scalar in (0,1), discount factor for model period
-    sigma         = scalar > 0, coefficient of relative risk aversion
-    l_tilde       = scalar > 0, time endowment for each agent each
-                    period
-    b_ellip       = scalar > 0, fitted value of b for elliptical
-                    disutility of labor
-    upsilon       = scalar > 1, fitted value of upsilon for elliptical
-                    disutility of labor
-    chi_n_vec     = (S,) vector, values for chi^n_s
-    A             = scalar > 0, total factor productivity parameter in
-                    firms' production function
-    alpha         = scalar in (0,1), capital share of income
-    delta         = scalar in [0,1], per-period capital depreciation rt
-    r_ss          = scalar > 0, steady-state aggregate interest rate
-    K_ss          = scalar > 0, steady-state aggregate capital stock
-    L_ss          = scalar > 0, steady-state aggregate labor
-    C_ss          = scalar > 0, steady-state aggregate consumption
-    b_ss          = (S,) vector, steady-state savings distribution
-                    (b1, b2,... bS)
-    n_ss          = (S,) vector, steady-state labor supply distribution
-                    (n1, n2,... nS)
-    maxiter       = integer >= 1, Maximum number of iterations for TPI
-    mindist       = scalar > 0, convergence criterion for TPI
-    TPI_tol       = scalar > 0, tolerance level for TPI root finders
-    xi            = scalar in (0,1], TPI path updating parameter
-    diff          = Boolean, =True if want difference version of Euler
-                    errors beta*(1+r)*u'(c2) - u'(c1), =False if want
-                    ratio version [beta*(1+r)*u'(c2)]/[u'(c1)] - 1
-    K1            = scalar > 0, initial aggregate capital stock
-    K1_cnstr      = Boolean, =True if K1 <= 0
-    rpath_init    = (T2+S-1,) vector, initial guess for the time path of
-                    interest rates
-    iter_TPI      = integer >= 0, current iteration of TPI
-    dist          = scalar >= 0, distance measure between initial and
-                    new paths
-    rw_params     = length 3 tuple, (A, alpha, delta)
-    Y_params      = length 2 tuple, (A, alpha)
-    cnb_params    = length 11 tuple, args to pass into inner_loop()
-    rpath         = (T2+S-1,) vector, time path of the interest rates
-    wpath         = (T2+S-1,) vector, time path of the wages
-    ind           = (S,) vector, integers from 0 to S
-    bn_args       = length 14 tuple, arguments to be passed to
-                    solve_bn_path()
-    cpath         = (S, T2+S-1) matrix, time path of distribution of
-                    individual consumption c_{s,t}
-    npath         = (S, T2+S-1) matrix, time path of distribution of
-                    individual labor supply n_{s,t}
-    bpath         = (S, T2+S-1) matrix, time path of distribution of
-                    individual savings b_{s,t}
-    n_err_path    = (S, T2+S-1) matrix, time path of distribution of
-                    individual labor supply Euler errors
-    b_err_path    = (S, T2+S-1) matrix, time path of distribution of
-                    individual savings Euler errors. First column and
-                    first row are identically zero
-    bSp1_err_path = (S, T2) matrix, residual last period savings, which
-                    should be close to zero in equilibrium. Nonzero
-                    elements of matrix should only be in first column
-                    and first row
-    Kpath_new     = (T2+S-1,) vector, new path of the aggregate capital
-                    stock implied by household and firm optimization
-    Kpath_cnstr   = (T2+S-1,) Boolean vector, =True if K_t<=0
-    Lpath_new     = (T2+S-1,) vector, new path of the aggregate labor
-    rpath_new     = (T2+S-1,) vector, updated time path of interest rate
-    wpath_new     = (T2+S-1,) vector, updated time path of the wages
-    Ypath         = (T2+S-1,) vector, equilibrium time path of aggregate
-                    output (GDP) Y_t
-    Cpath         = (T2+S-1,) vector, equilibrium time path of aggregate
-                    consumption C_t
-    RCerrPath     = (T2+S-2,) vector, equilibrium time path of the
-                    resource constraint error:
-                    Y_t - C_t - K_{t+1} + (1-delta)*K_t
-    Kpath         = (T2+S-1,) vector, equilibrium time path of aggregate
-                    capital stock K_t
-    Lpath         = (T2+S-1,) vector, equilibrium time path of aggregate
-                    labor L_t
-    tpi_time      = scalar, time to compute TPI solution (seconds)
-    tpi_output    = length 14 dictionary, {cpath, npath, bpath, wpath,
-                    rpath, Kpath, Lpath, Ypath, Cpath, bSp1_err_path,
-                    n_err_path, b_err_path, RCerrPath, tpi_time}
-
-    FILES CREATED BY THIS FUNCTION:
-        Kpath.png
-        Lpath.png
-        Ypath.png
-        C_aggr_path.png
-        wpath.png
-        rpath.png
-        cpath.png
-        npath.png
-        bpath.png
+    FILES CREATED BY THIS FUNCTION: None
 
     RETURNS: tpi_output
     --------------------------------------------------------------------
     '''
-    # Create directory if images directory does not already exist
-    cur_path = os.path.split(os.path.abspath(__file__))[0]
-    output_fldr = 'OUTPUT'
-    output_dir = os.path.join(cur_path, output_fldr)
-    if not os.access(output_dir, os.F_OK):
-        os.makedirs(output_dir)
-
     start_time = time.clock()
 
     # Unpack steady-state objects to be used in this algorithm
@@ -367,57 +277,71 @@ def create_graphs(tpi_output, p):
     Plot equilibrium time path results
     --------------------------------------------------------------------
     INPUTS:
-    tpi_output = length 13 dict, equilibrium time paths and computation
-                 time from TPI computation
-    args       = length 2 tuple, (S, T2)
+    tpi_output = length 17 dictionary, tpi output objects {cs_path,
+                 ns_path, bs_path, ns_err_path,  bs_err_path, r_path,
+                 w_path,  BQ_path, K_path,  L_path,  Y_path, C_path,
+                 I_path, NX_path, dist, iter_TPI, tpi_time}
+    p          = parameters class object
 
-    OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION:
+    OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    S           =
-    T2          =
-    Kpath       =
-    Lpath       =
-    rpath       =
-    wpath       =
-    Ypath       =
-    Cpath       =
-    cpath       =
-    npath       =
-    bpath       =
     cur_path    = string, path name of current directory
-    output_fldr = string, folder in current path to save files
-    output_dir  = string, total path of images folder
+    image_fldr  = string, folder in current path to save files
+    image_dir   = string, total path of images folder
     output_path = string, path of file name of figure to be saved
-    tvec        = (T2+S-1,) vector, time period vector
-    tgridT      = (T2,) vector, time period vector from 1 to T2
-    sgrid       = (S,) vector, all ages from 1 to S
-    tmat        = (S, T2) matrix, time periods for decisions ages
-                  (S) and time periods (T2)
-    smat        = (S, T2) matrix, ages for all decisions ages (S)
-                  and time periods (T2)
-    cmap_c      =
-    cmap_n      =
-    bpath_full  =
-    sgrid_b     =
-    tmat_b      =
-    smat_b      =
-    cmap_b      =
+    cs_path     = (S, T2+S) matrix, time path of household consumption
+                  by age
+    ns_path     = (S, T2+S) matrix, time path of household labor supply
+                  by age
+    bs_path     = (S+1, T2+S+1) matrix, time path of household savings
+                  and wealth by age
+    r_path      = (T2+S,) vector, equilibrium interest rate time path
+    w_path      = (T2+S,) vector, equilibrium wage time path
+    BQ_path     = (T2+S) vector, equilibrium total bequests time path
+    K_path      = (T2+1,) vector, time path of aggregate capital stock
+    L_path      = (T2+1,) vector, time path of aggregate labor
+    Y_path      = (T2+1,) vector, time path of aggregate output
+    C_path      = (T2+1,) vector, time path of aggregate consumption
+    I_path      = (T2+1,) vector, time path of aggregate investment
+    NX_path     = (T2+1,) vector, time path of net exports
+    tvec        = (T2+1,) vector, vector of time periods to be plotted
+    sgrid       = (S,) vector, all ages from 21 to 100
+    tmat        = (S, T2+1) matrix, time periods for decisions ages
+                  (S) and time periods (T2+1)
+    smat        = (S, T2+1) matrix, ages for all decisions ages (S)
+                  and time periods (T2+1)
+    sgrid_b     = (S+1,) vector, all ages from 21 to 101
+    tmat_b      = (S+1, T2+1) matrix, time periods for decisions ages
+                  (S+1) and time periods (T2+1)
+    smat_b      = (S+1, T2+1) matrix, ages for all decisions ages (S+1)
+                  and time periods (T2+1)
 
     FILES CREATED BY THIS FUNCTION:
-        Kpath.png
-        Lpath.png
-        rpath.png
-        wpath.png
-        Ypath.png
-        C_aggr_path.png
-        cpath.png
-        npath.png
-        bpath.png
+        TP_r_path.png
+        TP_w_path.png
+        TP_BQ_path.png
+        TP_K_path.png
+        TP_L_path.png
+        TP_Y_path.png
+        TP_C_path.png
+        TP_I_path.png
+        TP_NX_path.png
+        TP_cs_path.png
+        TP_ns_path.png
+        TP_bs_path.png
 
     RETURNS: None
     --------------------------------------------------------------------
     '''
+    # Create directory if images directory does not already exist
+    cur_path = os.path.split(os.path.abspath(__file__))[0]
+    image_fldr = 'OUTPUT/TP/images'
+    image_dir = os.path.join(cur_path, image_fldr)
+    if not os.access(image_dir, os.F_OK):
+        os.makedirs(image_dir)
+
+    # Unpack time path equilibrium objects to be plotted
     cs_path = tpi_output['cs_path']
     ns_path = tpi_output['ns_path']
     bs_path = tpi_output['bs_path']
@@ -430,13 +354,6 @@ def create_graphs(tpi_output, p):
     C_path = tpi_output['C_path']
     I_path = tpi_output['I_path']
     NX_path = tpi_output['NX_path']
-
-    # Create directory if images directory does not already exist
-    cur_path = os.path.split(os.path.abspath(__file__))[0]
-    image_fldr = 'OUTPUT/TP/images'
-    image_dir = os.path.join(cur_path, image_fldr)
-    if not os.access(image_dir, os.F_OK):
-        os.makedirs(image_dir)
 
     # Plot time path of interest rate
     tvec = np.arange(0, p.T2 + 1)
@@ -575,9 +492,8 @@ def create_graphs(tpi_output, p):
     plt.close()
 
     # Plot time path of individual consumption distribution
-    tgridT = np.arange(0, p.T2 + 1)
     sgrid = np.arange(p.E + 1, p.E + p.S + 1)
-    tmat, smat = np.meshgrid(tgridT, sgrid)
+    tmat, smat = np.meshgrid(tvec, sgrid)
     cmap_c = cm.get_cmap('summer')
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -607,15 +523,15 @@ def create_graphs(tpi_output, p):
     plt.close()
 
     # Plot time path of individual savings distribution
-    sgrid2 = np.arange(p.E + 1, p.E + p.S + 2)
-    tmat2, smat2 = np.meshgrid(tgridT, sgrid2)
+    sgrid_b = np.arange(p.E + 1, p.E + p.S + 2)
+    tmat_b, smat_b = np.meshgrid(tvec, sgrid_b)
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.set_xlabel(r'period-$t$')
     ax.set_ylabel(r'age-$s$')
-    ax.set_zlabel(r'individual labor supply $n_{s,t}$')
+    ax.set_zlabel(r'individual savings $b_{s,t}$')
     strideval = max(int(1), int(round(p.S / 10)))
-    ax.plot_surface(tmat2, smat2, bs_path[:, :p.T2 + 1],
+    ax.plot_surface(tmat_b, smat_b, bs_path[:, :p.T2 + 1],
                     rstride=strideval, cstride=strideval, cmap=cmap_c)
     output_path = os.path.join(image_dir, 'TP_bs_path')
     plt.savefig(output_path)

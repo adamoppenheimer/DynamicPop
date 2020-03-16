@@ -2,8 +2,8 @@
 ------------------------------------------------------------------------
 This module contains the functions that generate aggregate variables in
 the steady-state or in the transition path of the overlapping
-generations model with S-period lived agents and endogenous labor supply
-from Chapter 7 of the OG textbook.
+generations model with S-period lived agents, endogenous labor supply,
+non-constant demographics, bequests, and labor productivity growth.
 
 This Python module imports the following module(s): None
 
@@ -66,10 +66,16 @@ def get_Kt(b_sp1, p):
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    K_t = scalar or (T2 + 1,) vector, steady-state aggregate capital or
-          time path of aggregate capital
+    K_t          = scalar or (T2+1,) vector, steady-state aggregate
+                   capital or time path of aggregate capital
+    omega_sm1tm1 = (S, T2+1) matrix, omega_{s-1,t-1} time path of
+                   population distribution for ages E+1 to E+S
+    omega_stm1   = (S, T2+1) matrix, omega_{s,t-1} time path of
+                   population distribution for ages E+2 to E+S+1
+    i_st         = (S, T2+1) matrix, i_{s,t} time path of immigration
+                   rates for ages E+2 to E+S+1
 
-    RETURNS: L_t
+    RETURNS: K_t
     --------------------------------------------------------------------
     '''
     if b_sp1.ndim == 1:  # steady-state case
@@ -82,10 +88,6 @@ def get_Kt(b_sp1, p):
                                  p.omega_tp[:, :p.T2], axis=1)
         omega_stm1 = np.vstack((p.omega_tp[1:, :],
                                 np.zeros((1, p.T2 + 1))))
-        # print('i_st[1:, :p.T2 + 1] shape should be (79, 321):',
-        #       p.i_st[1:, :p.T2 + 1].shape)
-        # print('np.zeros((1, p.T2 + 1)) shape should be (1, 321):',
-        #       np.zeros((1, p.T2 + 1)).shape)
         i_st = np.vstack((p.i_st[1:, :p.T2 + 1],
                           np.zeros((1, p.T2 + 1))))
         K_st = ((1 / (1 + p.g_n_tp[:p.T2 + 1])) *
@@ -95,37 +97,41 @@ def get_Kt(b_sp1, p):
     return K_st
 
 
-def get_BQt(b_sp1tp1, r_t, p):
+def get_BQt(b_sp1t, r_t, p):
     '''
     --------------------------------------------------------------------
     Solve for total bequests
     --------------------------------------------------------------------
     INPUTS:
-    b_sp1tp1 = (S,) vector or (S, T2+1) matrix, steady-state savings
-               b_sp1 or time path of household savings b_{s+1,t+1}
-    r_t      = scalar > 0 or (T2+1,) vector, steady-state interest rate
-               or time path of interest rates
-    p        = parameters object, exogenous parameters of the model
+    b_sp1t = (S,) vector or (S, T2+1) matrix, steady-state savings b_sp1
+             or time path of household savings b_{s+1,t}
+    r_t    = scalar > 0 or (T2+1,) vector, steady-state interest rate or
+             time path of interest rates
+    p      = parameters object, exogenous parameters of the model
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    BQ_t = scalar or (T2 + 1,) vector, steady-state total bequests or
-           time path of total bequests
+    BQ_t         = scalar or (T2+1,) vector, steady-state total bequests
+                   or time path of total bequests
+    rho_sm1tm1   = (S, T2+1) matrix, rho_{s,t} time path of mortality
+                   rates for ages E+1 to E+S
+    omega_sm1tm1 = (S, T2+1) matrix, omega_{s,t} time path of population
+                   distribution for ages E+1 to E+S
 
     RETURNS: BQ_t
     --------------------------------------------------------------------
     '''
-    if b_sp1tp1.ndim == 1:  # steady-state case
+    if b_sp1t.ndim == 1:  # steady-state case
         BQ_t = (((1 + r_t) / (1 + p.g_n_ss)) *
-                (p.rho_ss * p.omega_ss * b_sp1tp1).sum())
-    elif b_sp1tp1.ndim == 2:  # transition path case
-        rho_mat = np.append(p.rho_m1.reshape((p.S, 1)),
-                            p.rho_st[:, :p.T2], axis=1)
-        omega_mat = np.append(p.omega_m1[:].reshape((p.S, 1)),
-                              p.omega_tp[:, :p.T2], axis=1)
+                (p.rho_ss * p.omega_ss * b_sp1t).sum())
+    elif b_sp1t.ndim == 2:  # transition path case
+        rho_sm1tm1 = np.append(p.rho_m1.reshape((p.S, 1)),
+                               p.rho_st[:, :p.T2], axis=1)
+        omega_sm1tm1 = np.append(p.omega_m1[:].reshape((p.S, 1)),
+                                 p.omega_tp[:, :p.T2], axis=1)
         BQ_t = (((1 + r_t) / (1 + p.g_n_tp[:p.T2 + 1])) *
-                (rho_mat * omega_mat * b_sp1tp1).sum(axis=0))
+                (rho_sm1tm1 * omega_sm1tm1 * b_sp1t).sum(axis=0))
 
     return BQ_t
 
@@ -143,7 +149,7 @@ def get_Ct(c_st, p):
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    C_t = scalar or (T2 + 1,) vector, steady-state aggregate consumption
+    C_t = scalar or (T2+1,) vector, steady-state aggregate consumption
           or time path of aggregate consumption
 
     RETURNS: C_t
@@ -164,7 +170,7 @@ def get_It(K_t, p):
     --------------------------------------------------------------------
     INPUTS:
     K_t = scalar > 0 or (T2+1,) vector, steady-state aggregate capital K
-           or time path of aggregate capital K_t
+          or time path of aggregate capital K_t
     p   = parameters object, exogenous parameters of the model
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
@@ -201,8 +207,14 @@ def get_NXt(b_sp1tp1, p):
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION: None
 
     OBJECTS CREATED WITHIN FUNCTION:
-    NX_t = scalar or (T2+1,) vector, steady-state net exports NX or time
-           path of net exports NX_t
+    NX_t       = scalar or (T2+1,) vector, steady-state net exports NX
+                 or time path of net exports NX_t
+    omega_sp1t = (S, T2+1) matrix, omega_{s+1,t} time path of population
+                 distribution for ages E+2 to E+S+1
+    i_stp1     = (S, T2+2) matrix, i_{s,t} time path of immigration
+                 rates for ages E+1 to E+S for one extra time period
+    i_sp1tp1   = (S, T2+1) matrix, i_{s+1,t+1} time path of immigration
+                 rates for ages E+2 to E+S+1 for periods t=1 to t=T2+1
 
     RETURNS: NX_t
     --------------------------------------------------------------------

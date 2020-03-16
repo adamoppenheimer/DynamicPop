@@ -4,6 +4,7 @@
 \usepackage{geometry}
 \geometry{letterpaper,tmargin=1in,bmargin=1in,lmargin=1.25in,rmargin=1.25in}
 \usepackage[format=hang,font=normalsize,labelfont=bf]{caption}
+\usepackage{subcaption}
 \usepackage{amsmath}
 \usepackage{multirow}
 \usepackage{array}
@@ -71,16 +72,16 @@
 \begin{document}
 
 \title{Simple OG Model with Non-constant Demographic Dynamics and Productivity Growth}
-\date{version (20.03.b)}
+\date{version (20.03.c)}
 \author{Richard W. Evans}
 \maketitle
 
 \pagenumbering{arabic}
 
 
-In this chapter, we extend the $S$-period-lived agent model with endogenous labor supply from Chapter 4 to include a realistic demographic transition process as well as productivity growth. Both of these sources of growth will render the model nonstationary. In order to solve the model, we will have to be careful to correctly stationarize all of the characterizing equations.
+This model extends the $S$-period-lived agent model with endogenous labor supply from Chapter 4 to include a realistic demographic transition process as well as productivity growth. Both of these sources of growth will render the model nonstationary. In order to solve the model, we will have to be careful to correctly stationarize all of the characterizing equations.
 
-The addition of mortality rates to the model adds some uncertainty to the household's expectation as to whether it will survive to the next period. This creates a situation in which some fraction of age-$s$ households will die every period and leave an unintended bequest. For this reason, we will incorporate some of the modeling structures from Chapter 7 into this chapter. However, for simplicity, we will not incorporate the warm-glow bequest motive of Chapter 7.
+The addition of mortality rates to the model adds some uncertainty to the household's expectation as to whether it will survive to the next period. This creates a situation in which some fraction of age-$s$ households will die every period and leave an unintended bequest. For this reason, we will incorporate some of the modeling structures from Chapter 7 into this chapter, including the warm glow bequest motive which implies a borrowing constraint.
 
 \citet{Nishiyama:2015} and \citet{DeBackerEtAl:2019} are examples of overlapping generations papers that carefully model the demographics of the households in the respective models.
 
@@ -727,7 +728,9 @@ The addition of mortality rates to the model adds some uncertainty to the househ
 
     The solution method for the equilibrium transition path of the economy defined in Definition \ref{DefOGmodelNSSEql} is time path iteration (TPI). The key assumption is that the economy will reach the steady-state equilibrium $\bm{\bar{\Gamma}}$ described in Definition \ref{DefOGmodelSSEql} in a finite number of periods $T_2<\infty$ and $T_2>T_1$ regardless of the initial state $\bm{\hat{\Gamma}}_0$.
 
-    The solution method is a two-stage, outer-loop and inner-loop fixed point algorithm similar to the steady-state solution method described in Section \ref{SecSolMthSS}. However, for the equilibrium transition path, we must guess a time path for the interest rate $r_t$ and total bequests $BQ_t$.
+    The parameters needed for the equilibrium transition path solution of this model are $\Bigl\{T_1, T_2, S, \beta, \sigma, \tilde{l}, b, \upsilon, \{\chi_{n,s}\}_{s=E+1}^{E+S}, \chi_b, A, \alpha, \delta, g_y, \{\tilde{g}_{n,t}\}_{t=0}^{T_2+S}, \{\hat{\omega}_{s,t},\rho_{s,t}\}_{s=E+1,t=-1}^{E+S,T_2+S},\{i_{s,t}\}_{s=E+1,t=0}^{E+S,T_2+S}\Bigr\}$, where $T_1$ is the period beyond which the demographic variables are in the steady state, $T_2$ is the period beyond which the model is in the steady state, $S$ is the number of economically active periods in an individual's life, $\Bigl\{\beta, \sigma, \tilde{l}, b, \upsilon, \{\chi_{n,s}\}_{s=E+1}^{E+S}, \chi_b\Bigr\}$ are household utility function parameters, $\{A, \alpha, \delta,g_y\}$ are firm production function parameters, and $\Bigl\{\hat{\omega}_{s,t},\rho_{s,t}\}_{s=E+1,t=-1}^{E+S,T_2+S}$, and $\{\tilde{g}_{n,t},i_{s,t}\}_{s=E+1,t=0}^{E+S,T_2+S}\Bigr\}$ are demographic parameters. These parameters are chosen, calibrated, or estimated outside of the model and are inputs to the solution method.
+
+    The solution method is a two-stage, outer-loop and inner-loop fixed point algorithm similar to the steady-state solution method described in Section \ref{SecSolMthSS}. However, for the equilibrium transition path, we must guess a time path for the interest rate $r_t$ and total bequests $\hat{BQ}_t$.
 
     \begin{enumerate}
       \item Make a guess for the time path of the interest rate $\bm{r}^i\equiv\{r_t^i\}_{t=0}^{T_2+S}$ and stationary total bequests $\bm{\hat{BQ}}^i\equiv\{\hat{BQ}_t^i\}_{t=0}^{T_2 + S}$. The only restrictions on the initial guesses for the two time paths are that all values must be strictly positive $r_t^i, \hat{BQ}_t^i> 0$ for all $t$ and the time series must equal the respective steady state values $r_t^i=\bar{r}$ and $\hat{BQ}_t^i=\overline{BQ}$ for all periods on or after $t=T_2$. These guessed time series must go beyond the assumed steady-state in order to solve for a complete set of current-period labor supplies in period $T_2$.
@@ -796,122 +799,142 @@ The addition of mortality rates to the model adds some uncertainty to the househ
       \end{enumerate}
     \end{enumerate}
 
-%   The first step is to assume a transition path for stationary aggregate capital $\bm{\hat{K}}^i$ and total bequests $\bm{\hat{BQ}}^i$ such that $T$ is sufficiently large to ensure that $\bm{\hat{\Gamma}}_T = \bm{\bar{\Gamma}}$. The superscript $i$ is an index for the iteration number. The exogenously supplied population demographics $\hat{\omega}_{s,t}$ reach a steady-state in a known number of periods (see Section \ref{SecSperGrowCalibSSTP}). $T$ must be greater than that number of periods.
+    The code for solving for the transition path and steady-state of this model is available in the GitHub repository. Table \ref{TabOGmodelTP} shows the computational time and approximation error of the transition path iteration fixed point solution method. Figures \ref{FigTPrwBQ} through \ref{FigTP_CINX} show plots of the equilibrium time series of the aggregate variables. And Figure \ref{FigTP_csnsbs} shows the equilibrium time path of the distribution of household consumption $\hat{c}_{s,t}$, labor supply $n_{s,t}$, and savings $\hat{b}_{s,t}$.
 
-%   The transition path for stationary aggregate capital determines the transition path for both the stationary wage $\bm{\hat{w}}^i = \left\{\hat{w}_1^i,\hat{w}_2^i,...\hat{w}_T^i\right\}$ and the interest rate $\bm{r}^i = \left\{r_1^i,r_2^i,...r_T^i\right\}$. The exact initial distribution of capital in the first period $\bm{\hat{\Gamma}}_1$ can be arbitrarily chosen as long as it satisfies $\hat{K}_1^i = \frac{1}{1 + \tilde{g}_{n,1}}\sum_{s=E+2}^{E+S}\hat{\omega}_{s-1,0}\hat{b}_{s,1}$ according to market clearing condition \eqref{EqSperGrowMCkStat} and satisfies $BQ_1^i = \left(\frac{1 + r_t^i}{1 + \tilde{g}_{n,1}}\right)\sum_{s = E+2}^{E+S}\rho_{s-1}\hat{\omega}_{s-1,0}\hat{b}_{s,1}$ according to market clearing condition \eqref{EqSperGrowBCstat}. Note that both of these conditions require knowing the population growth rate from the period before the initial period to the initial period $\tilde{g}_{n,1}$ as well as the stationary population distribution from the period before the initial period $\{\hat{\omega}_{s,0}\}_{s=E+1}^{E+S-1}$. One could also first choose the initial stationary distribution of capital $\bm{\hat{\Gamma}}_1$ and then choose an initial stationary aggregate capital stock $\hat{K}_1^i$ and total bequests $\hat{BQ}_1^i$ that corresponds to that distribution. The only other restrictions on the initial transition paths for aggregate capital and total bequests is that they both equal the steady-state level $\hat{K}_T^i = \bar{K} = \frac{1}{1 + \bar{g}_n}\sum_{s=E+2}^{E+S}\bigl(\bar{\omega}_{s-1}\bar{b}_s + i_s\bar{\omega}_s\bar{b}_s\bigr)$ by period $T$ and $\hat{BQ}_T^i = \left(\frac{1 + \bar{r}}{1 + \bar{g}_{n}}\right)\sum_{s = E+2}^{E+S}\rho_{s-1}\bar{\omega}_{s-1}\bar{b}_{s}$. But the initial guesses for the aggregate capital stocks $\hat{K}_t^i$ and total bequests $\hat{BQ}_t^i$ for periods $1<t<T$ can be any level.
+    \begin{table}[htbp] \centering \captionsetup{width=4.8in}
+    \caption{\label{TabOGmodelTP}\textbf{Equilibrium transition path computation statistics}}
+      \begin{threeparttable}
+      \begin{tabular}{>{\small}l >{\small}r}
+        \hline\hline
+        Maximum absolute percent deviation of new time series & 9.43e-8 \\
+        \quad values $\bigl(\bm{r}^{i'},\bm{\hat{BQ}}^{i'}\bigr)$ from initial guess time series $\bigl(\bm{r}^{i},\bm{\hat{BQ}}^{i}\bigr)$ &  \\[3mm]
+        Serial computation time & 2 hrs, 2 min, 29.7 sec \\
+        \hline\hline
+      \end{tabular}
+      % \begin{tablenotes}
+      %   \scriptsize{\item[a]The calibration of $b$ and $\upsilon$ is based on matching the marginal disutility of labor supply of a constant Frisch elasticity of labor supply functional form with a Frisch elasticity of 0.8. See \citet{EvansPhillips:2017}.}
+      % \end{tablenotes}
+      \end{threeparttable}
+    \end{table}
 
-%   Given the initial capital distribution $\bm{\hat{\Gamma}}_1$ and the transition paths of aggregate capital $\bm{\hat{K}}^i = \left\{\hat{K}_1^i,\hat{K}_2^i,...\hat{K}_T^i\right\}$, total bequests $\bm{\hat{BQ}}^i = \left\{\hat{BQ}_1^i,\hat{BQ}_2^i,...\hat{BQ}_T^i\right\}$, the wage $\bm{\hat{w}}^i = \left\{\hat{w}_1^i,\hat{w}_2^i,...\hat{w}_T^i\right\}$, and the interest rate $\bm{r}^i = \left\{r_1^i,r_2^i,...r_T^i\right\}$, one can solve for the optimal savings decision for the initial age $s=E+S-1$ individual for the last period of his life $\hat{b}_{E+S,2}$ using his last stationary intertemporal Euler equation.
-%   \begin{equation}\label{EqSperGrowSavEulSm1t1stat}
-%     \begin{split}
-%       &\Bigl([1 + r_1^i]\hat{b}_{E+S-1,1} + \hat{w}_1^i n_{E+S-1} + \hat{BQ}_1^i - e^{g_y}\hat{b}_{E+S,2}\Bigr)^{-\sigma} = \\
-%       &\qquad e^{-\sigma g_y}\beta\bigl(1 + r_2^i\bigr)\bigl(1 - \rho_{E+S-1}\bigr)\Bigl([1 + r_2^i]\hat{b}_{E+S,2} + \hat{w}_2^i n_{E+S} + \hat{BQ}_2^i\Bigr)^{-\sigma}
-%     \end{split}
-%   \end{equation}
-%   Notice that everything in equation \eqref{EqSperGrowSavEulSm1t1stat} is known except for the savings decision $\hat{b}_{E+S,2}$. This is one equation and one unknown.
+    \begin{figure}[htbp]\centering \captionsetup{width=5.0in}
+    \caption{\label{FigTPrwBQ}\textbf{Equilibrium transition paths of prices and total bequests}}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_r_path.png}
+        \caption{Interest rate $r_t$}
+        \label{FigTPrwBQ_r}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_w_path.png}
+        \caption{Wage $\hat{w}_t$}
+        \label{FigTPrwBQ_w}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_BQ_path.png}
+        \caption{Total bequests $\hat{BQ}_t$}
+        \label{FigTPrwBQ_BQ}
+      \end{subfigure}
+    \end{figure}
 
-%   The next step is to solve for the remaining lifetime savings decisions for the next oldest individual alive in period $t=1$. This individual is age $s=E+S-2$ and has two remaining savings decisions $b_{E+S-1,2}$ and $b_{E+S,3}$. From \eqref{EqSperGrowEqlEulGenStat}, we know that the two equations that characterize these two decisions are the following.
-%   \begin{equation}\label{EqSperGrowSavEulSm2t1}
-%     \begin{split}
-%       &\Bigl([1 + r_1^i]\hat{b}_{E+S-2,1} + \hat{w}_1^i n_{E+S-2} + \hat{BQ}_1^i - e^{g_y}\hat{b}_{E+S-1,2}\Bigr)^{-\sigma} = \\
-%       &\qquad e^{-\sigma g_y}\beta(1 + r_2^i)(1 - \rho_{E+S-2})\Bigl([1 + r_2^i]\hat{b}_{E+S-1,2} + \hat{w}_2^i n_{E+S-1} + \hat{BQ}_2^i - e^{g_y}\hat{b}_{E+S,3}\Bigr)^{-\sigma}
-%     \end{split}
-%   \end{equation}
-%   \begin{equation}\label{EqSperGrowSavEulSm1t2}
-%     \begin{split}
-%       &\Bigl([1 + r_2^i]\hat{b}_{E+S-1,2} + \hat{w}_2^i n_{E+S-1} + \hat{BQ}_2^i - e^{g_y}\hat{b}_{E+S,3}\Bigr)^{-\sigma} = \\
-%       &\qquad\qquad e^{-\sigma g_y}\beta(1 + r_3^i)(1 - \rho_{E+S-1})\Bigl([1 + r_3^i]\hat{b}_{E+S,3} + \hat{w}_3^i n_{E+S} + \hat{BQ}_3^i\Bigr)^{-\sigma}
-%     \end{split}
-%   \end{equation}
-%   Euler equations \eqref{EqSperGrowSavEulSm2t1} and \eqref{EqSperGrowSavEulSm1t2} represent two equations and two unknowns $\hat{b}_{E+S-1,2}$ and $\hat{b}_{E+S,3}$. Everything else is known.
+    \begin{figure}[htbp]\centering \captionsetup{width=5.0in}
+    \caption{\label{FigTP_KLY}\textbf{Equilibrium transition paths of aggregate capital, labor, and output}}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_K_path.png}
+        \caption{Aggregate capital $\hat{K}_t$}
+        \label{FigTP_KLY_K}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_L_path.png}
+        \caption{Aggregate labor $\hat{L}_t$}
+        \label{FigTP_KLY_L}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_Y_path.png}
+        \caption{Aggregate output $\hat{Y}_t$}
+        \label{FigTP_KLY_Y}
+      \end{subfigure}
+    \end{figure}
 
-%   We continue solving the remaining lifetime decisions of each individual alive between periods 1 and $T$. This includes all the individuals who were already alive in period 1 and therefore have fewer than $S-1$ savings decisions for which to solve. It also includes all the individuals born between periods 1 and $T$ for whom we have the full set of $S-1$ lifetime decisions. Once we have solved for all the individual savings decisions for individuals alive between periods 1 and $T$, then we have the complete distribution of savings $\{\bm{\hat{\Gamma}}_t\}_{t=1}^T$ for each period between 1 and $T$. We can use this to compute new time paths of the aggregate capital stock and total bequests consistent with the individual savings decisions $\hat{K}_t^{i'} = \frac{1}{1 + \tilde{g}_{n,t}}\sum_{s=E+2}^{E+S}\bigl(\hat{\omega}_{s-1,t-1}\hat{b}_{s,t} + i_s\hat{\omega}_{s,t-1}\hat{b}_{s,t}\bigr)$ and $\hat{BQ}_t^{i'} = \left(\frac{1 + r_t}{1 + \tilde{g}_{n,t}}\right)\sum_{s = E+2}^{E+S}\rho_{s-1}\hat{\omega}_{s-1,t-1}\hat{b}_{s,t}$ for all $1\leq t\leq T$. We place a ``$\, ' \,$'' on the iteration index of these aggregate time series because, in general, $\hat{K}_t^{i'}\neq \hat{K}_t^i$ and $\hat{BQ}_t^{i'}\neq \hat{BQ}_t^i$. That is, the initial conjectured paths of the aggregate capital stock and total bequests from which the savings decisions were made is not necessarily equal to the paths of the aggregate capital stock and total bequests consistent with those savings decisions.\footnote{A check here for whether $T$ is large enough is if $\hat{K}_T^{i'}=\bar{K}$ and $\hat{BQ}_T^{i'}=\bar{BQ}$ as well as those aggregate variables for the following periods. If not, then $T$ needs to be larger.}
+    \begin{figure}[htbp]\centering \captionsetup{width=5.0in}
+    \caption{\label{FigTP_CINX}\textbf{Equilibrium transition paths of aggregate consumption, investment, and net exports}}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_C_path.png}
+        \caption{Aggregate consumption $\hat{C}_t$}
+        \label{FigTP_CINX_C}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_I_path.png}
+        \caption{Aggregate investment $\hat{I}_t$}
+        \label{FigTP_CINX_I}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_NX_path.png}
+        \caption{Net exports $\hat{NX}_t$}
+        \label{FigTP_CINX_NX}
+      \end{subfigure}
+    \end{figure}
 
-%   Let $\norm{\cdot}$ be a norm on the space of time paths for the aggregate capital stock and total bequests. Common norms to use are the $L^2$ and the $L^\infty$ norms. Then the fixed point necessary for the equilibrium transition path from Definition \ref{DefSperGrowNSSEql} has been found when the distance between $\left(\bm{\hat{K}}^{i'},\bm{\hat{BQ}}^{i'}\right)$ and $\left(\bm{\hat{K}}^{i},\bm{\hat{BQ}}^{i}\right)$ is arbitrarily close to zero.
-%   \begin{equation}\label{EqSperGrowEqlTPIdist}
-%     \norm{\left(\bm{\hat{K}}^{i'},\bm{\hat{BQ}}^{i'}\right) - \left(\bm{\hat{K}}^{i},\bm{\hat{BQ}}^{i}\right)} < \ve \quad\text{for}\quad \ve>0
-%   \end{equation}
-%   If the fixed point has not been found $\norm{\left(\bm{\hat{K}}^{i'},\bm{\hat{BQ}}^{i'}\right) - \left(\bm{\hat{K}}^{i},\bm{\hat{BQ}}^{i}\right)} > \ve$, then new transition paths for the aggregate capital stock and total bequests are generated as a convex combination of $\left(\bm{\hat{K}}^{i'},\bm{\hat{BQ}}^{i'}\right)$ and $\left(\bm{\hat{K}}^{i},\bm{\hat{BQ}}^{i}\right)$.
-%   \begin{equation}\label{EqSperGrowEqlTPInewpath}
-%     \left(\bm{\hat{K}}^{i+1},\bm{\hat{BQ}}^{i+1}\right) = \xi\left(\bm{\hat{K}}^{i'},\bm{\hat{BQ}}^{i'}\right) + (1-\xi)\left(\bm{\hat{K}}^{i},\bm{\hat{BQ}}^{i}\right) \quad\text{for}\quad \xi\in(0,1)
-%   \end{equation}
-%   This process is repeated until the initial transition path for the aggregate capital stock is consistent with the transition path implied by those beliefs and household and firm optimization. TPI solves for the equilibrium transition path from Definition \ref{DefSperGrowNSSEql} by finding a fixed point in the time path of the economy.
+    \begin{figure}[htbp]\centering \captionsetup{width=5.0in}
+    \caption{\label{FigTP_csnsbs}\textbf{Equilibrium transition paths of individual, consumption, labor supply, and savings by age}}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_cs_path.png}
+        \caption{Individual consumption $\hat{c}_{s,t}$}
+        \label{FigTP_csnsbs_c}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_ns_path.png}
+        \caption{Individual labor supply $n_{s,t}$}
+        \label{FigTP_csnsbs_n}
+      \end{subfigure}
+      \begin{subfigure}[b]{0.4\textwidth}
+        \includegraphics[width=\textwidth]{images/TP_bs_path.png}
+        \caption{Individual savings $\hat{b}_{s,t}$}
+        \label{FigTP_csnsbs_b}
+      \end{subfigure}
+    \end{figure}
 
-%   \begin{figure}[htbp]\centering \captionsetup{width=6.0in}
-%   \caption{\label{FigSperGrowTPIaggr}\textbf{Equilibrium transition paths of prices and aggregate variables}}
-%     \begin{subfigure}[b]{0.4\textwidth}
-%       \includegraphics[width=\textwidth]{images/SperGrowKpath.png}
-%       \caption{Aggregate capital}
-%       \label{FigSperGrowTPIkpath}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.4\textwidth}
-%       \includegraphics[width=\textwidth]{images/SperGrowYpath.png}
-%       \caption{Aggregate output}
-%       \label{FigSperGrowTPIypath}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.4\textwidth}
-%       \includegraphics[width=\textwidth]{images/SperGrowrpath.png}
-%       \caption{Interest rate}
-%       \label{FigSperGrowTPIrpath}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.4\textwidth}
-%       \includegraphics[width=\textwidth]{images/SperGrowwpath.png}
-%       \caption{Wage}
-%       \label{FigSperGrowTPIwpath}
-%     \end{subfigure}
-%   \end{figure}
-
-%   % \begin{figure}[htbp]\centering \captionsetup{width=6.0in}
-%   %   \caption{\label{FigSperGrowTPIcb}\textbf{Equilibrium transition paths of distributions of consumption, labor supply, and savings}}
-%   %   \fbox{\resizebox{6.0in}{4.5in}{\includegraphics{images/SperLabTPIcnb.png}}}
-%   % \end{figure}
-
-%   \begin{figure}[htbp]\centering \captionsetup{width=6.0in}
-%   \caption{\label{FigSperGrowTPIcb}\textbf{Equilibrium transition paths of distributions of consumption and savings}}
-%     \begin{subfigure}[b]{0.4\textwidth}
-%       \includegraphics[width=\textwidth]{images/SperGrowcpath.png}
-%       \caption{Household consumption}
-%       \label{FigSperGrowTPIcpath}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.4\textwidth}
-%       \includegraphics[width=\textwidth]{images/SperGrowbpath.png}
-%       \caption{Household savings}
-%       \label{FigSperGrowTPIbpath}
-%     \end{subfigure}
-%   \end{figure}
-
-%   \begin{table}[htbp] \centering \captionsetup{width=4.4in}
-%   \caption{\label{TabSperGrowTPIerrs}\textbf{Maximum absolute errors in characterizing equations across transition path}}
-%     \begin{threeparttable}
-%     \begin{tabular}{>{\small}l >{\small}r}
-%       \hline\hline
-%       \multicolumn{1}{c}{Description} & \multicolumn{1}{c}{Value} \\
-%       \hline
-%       Maximum absolute savings Euler error      & 3.34e-14 \\
-%       Maximum absolute resource constraint error & ? \\
-%       \hline
-%       Serial computation time                    & 2 min. 0.2 sec. \\
-%       \hline\hline
-%     \end{tabular}
-%     % \begin{tablenotes}
-%     %   \scriptsize{\item[a]The calibration of $b$ and $\upsilon$ is based on matching the marginal disutility of labor supply of a constant Frisch elasticity of labor supply functional form with a Frisch elasticity of 0.8. See \citet{EvansPhillips:2017}.}
-%     % \end{tablenotes}
-%     \end{threeparttable}
-%   \end{table}
-
-%   The four panels of Figure \ref{FigSperGrowTPIaggr} show the equilibrium time paths of the stationary aggregate variables $r_t$, $\hat{w}_t$, $\hat{K}_t$, and $\hat{Y}_t$. Figure \ref{FigSperGrowTPIcb} shows the equilibrium time path of stationary individual consumption $\hat{c}_{s,t}$ and savings $\hat{b}_{s+1,t+1}$. Table \ref{TabSperGrowTPIerrs} lists the maximum absolute values across the time path of the characterizing equation errors of our solution as evidence that we have found the steady-state equilibrium.
+    \clearpage
 
 
-% \section{Calibration}\label{SecSperGrowCalibr}
+\section{Exercises}\label{SecExercises}
 
-%   In this section, we discuss the calibration of the exogenous parameters of the model, with a special emphasis on estimating the parameters associated with the demographic dynamics. Assume that agents live for $E+S$ total periods, are not economically relevant for the first $E$ periods, are born into economic relevance at age $s=E+1$ and live until a maximum age os $s=E+S$. This implies $S$ economically relevant years. Let $E=20$ and $S=80$ such that each economically relevant model period represents a year from ages $s=E+1=21$ to $s=E+S=100$.
+  \renewcommand\theenumi{\alph{enumi}}
 
-%   The first subsection \ref{SecSperGrowCalibNonPop} discusses the calibration of the non-population related model parameters. Subsections \ref{SecSperGrowCalibFert}, \ref{SecSperGrowCalibMort}, and \ref{SecSperGrowCalibImm} deal with a general approach for calibrating fertility rates $f_s$, mortality rates $\rho_s$, and immigration rate $i_s$, which are the inputs to solving for the time-path and steady state of of the population distribution $\{\hat{\omega}_{s,t}\}_{s=1}^{E+S}$ and growth rate $\tilde{g}_{n,t}$, which is the topic of Section \ref{SecSperGrowCalibSSTP}.
+  \begin{exercise}\label{ExDemog}
+    Estimate the non-constant demographics and incorporate them into the macroeconomic model.
+    \begin{enumerate}
+      \item Estimate non-constant fertility rate $f_{s,t}$, mortality rates $\rho_{s,t}$, and immigration rates $f_{s,t}$ for $s=1,2,...100$ and $t=-1,0,1,2,...T_1$, where $\texttt{curr\_year}=2020$ corresponds to $t=0$.
+      \item Use the estimated fertility, mortality, and immigration rates and the most recent population distribution to estimate the time path for the population distribution $\hat{\omega}_{s,t}$ for ages $s=1,2,...100$ and $t=-1,0,1,2,...T_1$.
+      \item Update the code in \texttt{parameters.py} lines 136 to 159 to incorporate the updated demographics into the listed objects. Make sure that the newly defined objects have the same dimension as the current placeholder objects. These objects are described in the docstring in lines 101 through 133.
+      \item Make sure the model runs with the new demographics before moving on to the following exercises. Make sure that running \texttt{python execute.py} solves the steady-state and transition path equilibria. Inspect the errors and plots to make sure the model solved appropriately.
+    \end{enumerate}
+  \end{exercise}
 
+  \begin{exercise}\label{ExCalib1}
+    The non-demographic parameters of the model should be calibrated to the country of interest. The exogenous parameters of the model are set in the \texttt{parameters.py} file. I recommend leaving $E=20$, and $S=80$ and estimating the demographics according to 100 one-year periods from 1 to 100.
+    \begin{enumerate}
+      \item Calibrate $T_1$ to be the period at which the natural asymptote is approximately reached of the non-constant demographics estimated in Exercise \ref{ExDemog}. For some country demographics, this number might be around $T_1=160$. Set the time period at which the economy reaches its steady-state to be $T_2=T_1 + S$. You could probably get away with $T_2=T_1 + 0.5S$.
+      \item Choose a Frisch elasticity of labor supply (\texttt{Frisch\_elast}) that matches estimates for the target country.
+      \item Calibrate firm parameters $\alpha$, $\delta$, and $g_y$ to match corresponding values in that country.
+      \item (Requires structural estimation) Choose values of $\{\chi_{n,s}\}_{s=E+1}^{E+S}$ and $\chi_b$ to match key household labor moments by age and one key wealth moment (maybe the capital-income ratio in the steady-state $\bar{K}/\bar{Y}$).
+      \item Choose an initial household wealth $\hat{b}_{s,t=0}$ (\texttt{b\_s0\_vec}), which is really set in \texttt{execute.py} in lines 194 to 198, such that the average wealth equals the steady-state average,
+      \begin{equation*}
+        \sum_{s=E+2}^{E+S+1}\hat{\omega}_{s-1,t=-1}\hat{b}_{s,t=0} = \sum_{s=E+2}^{E+S+1}\bar{\omega}_{s-1}\bar{b}_{s}
+      \end{equation*}
+      and that the values percent deviation from the mean by age $\bigl(\hat{b}_{s,t=0} - \bar{b}_s\bigr)/\bar{b}_s$ match those of the current period data for each age $s$.
+    \end{enumerate}
+  \end{exercise}
 
-%   \subsection{Non-population parameters}\label{SecSperGrowCalibNonPop}
+  \begin{exercise}\label{ExExper}
+    Answer the research question, ``How do different assumptions about demographics affect the macroeconomy?'' by solving the model for the following three scenarios and comparing the results.
+    \begin{enumerate}
+      \item (Baseline) Incorporate the non-constant demographics from Exercise \ref{ExDemog} and the calibration from Exercise \ref{ExCalib1} into the macroeconomic model through \texttt{parameters.py}. Run the resulting macroeconomic model by typing \texttt{python execute.py}. Save the results in a folder \texttt{OUTPUT/BASELINE} that has two subfolders named \texttt{/SS/} and \texttt{/TP/}.
+      \item (Naive 1) An alternative demographic assumption is to assume that the fertility, mortality, and immigration rates are constant from period $t=0$ to infinity. Calculate the resulting population distribution over the time path $\hat{\omega}_{s,t}$ and solve the macro model with those assumptions. Show the percent deviation in the macroeconomic time series from the baseline for the series plotted in Figures \ref{FigTPrwBQ} through \ref{FigTP_csnsbs}.
+      \item (Naive 2) An even simpler alternative demographic assumption is to assume that the fertility, mortality, and immigration rates as well as the stationarized population distribution $\hat{\omega}_{s,t}$ are constant from period $t=0$ to infinity. Solve the macro model with those assumptions. Show the percent deviation in the macroeconomic time series from the baseline for the series plotted in Figures \ref{FigTPrwBQ} through \ref{FigTP_csnsbs}.
+    \end{enumerate}
+  \end{exercise}
 
-%     In general, the time-dependent parameters can be written as functions of total economically relevant lifetime model periods $S$, because each period of the model is $80/S$ years. If the annual discount factor is estimated to be 0.96, then the model period discount factor is $\beta = 0.96^{80/S}$. Let the annual depreciation rate of capital be 0.05. Then the model period depreciation rate is $\delta = 1-(1-0.05)^{80/S} = 0.05$. Let the coefficient of relative risk aversion be $\sigma = 2.2$, let the productivity scale parameter of firms be $A=1$, let the capital share of income be $\alpha = 0.35$, and let the growth rate of labor augmenting technological change be $g_y=0.03$.
-
+  \renewcommand\theenumi{\roman{enumi}}
 
 
 \bibliography{OGsimpleDemog.bib}

@@ -9,13 +9,14 @@ productivity growth.
 This Python module imports the following module(s): None
 
 This Python module defines the following function(s):
-    get_cons()
+    get_cs_vec()
     MU_c_stitch()
     MDU_n_stitch()
     get_n_errors()
     get_b_errors()
+    get_nb_errors()
     get_cnb_vecs()
-    c1_bSp1err()
+    get_cnb_paths()
 ------------------------------------------------------------------------
 '''
 # Import packages
@@ -35,8 +36,8 @@ import os
 def get_cs_vec(b_s, b_sp1, n_s, r, w, BQ, p):
     '''
     --------------------------------------------------------------------
-    Calculate household consumption given prices, labor supply, current
-    wealth, and savings
+    Calculate household consumption given prices, total bequests, labor
+    supply, current wealth, and savings
     --------------------------------------------------------------------
     INPUTS:
     b_s   = (rp,) vector, current period wealth or time path of current-
@@ -669,36 +670,75 @@ def get_cnb_vecs(nb_guess, b_init, r, w, BQ, rho_st, diff, p, toler):
 def get_cnb_paths(r_path, w_path, BQ_path, cnb_args):
     '''
     --------------------------------------------------------------------
-    Given time series for r_t, w_t, and p_{m,t} solve for time series of
-    all household decisions c_{s,t}, n_{s,t}, b_{s+1,t+1}, and c_{m,s,t}
+    Given time series for r_t, w_t, and BQ_t, solve for time series of
+    all household decisions c_{s,t}, n_{s,t}, and b_{s+1,t+1}
     --------------------------------------------------------------------
     INPUTS:
-    r_path   = (T2 + S,) vector, time series for interest rate r_t
-    w_path   = (T2 + S,) vector, time series for wage w_t
-    BQ_path  = (T2 + S,) matrix, time series for industry-specific
-               prices p_{m,t}
+    r_path   = (T2+S,) vector, time series for interest rate r_t
+    w_path   = (T2+S,) vector, time series for wage w_t
+    BQ_path  = (T2+S,) matrix, time series for total bequests BQ_t
     cnb_args = length 2 tuple, (ss_output, p)
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION:
-        get_n_errors()
+        get_nb_errors()
+        get_cnb_vecs()
 
     OBJECTS CREATED WITHIN FUNCTION:
-    ss_output    =
+    ss_output    = length 18 dictionary, steady-state output {c_ss,
+                   n_ss, b_ss, n_err_ss, b_err_ss, r_ss, w_ss, BQ_ss,
+                   r_err_ss, BQ_err_ss, L_ss, K_ss, Y_ss, C_ss, I_ss,
+                   NX_ss, RCerr_ss, ss_time}
     p            = parameters class object
-    n_ss         = (S,) vector, steady-state individual labor supply
-    c_s_path     = (S, T2 + S) matrix, ?
-    n_s_path     = (S, T2 + S) matrix, ?
-    b_s_path     = (S, T2 + S) matrix, ?
-    c_ms_path    = (M, S, T2 + S) array, ?
-    n_s_err_path = (S, T2 + S) matrix, ?
-    b_s_err_path = (S, T2 + S) matrix, ?
+    n_ss         = (S,) vector, steady-state labor supply by age
+    b_ss         = (S+1,) vector, steady-state savings by age
+    c_s_path     = (S, T2+S) matrix, time path of consumption by age
+    n_s_path     = (S, T2+S) matrix, time path of labor supply by age
+    b_s_path     = (S+1, T2+S+1) matrix, time path of wealth or savings
+                   by age
+    n_s_err_path = (S, T2+S) matrix, time path of Euler errors for
+                   optimal labor supply decisions by age
+    b_s_err_path = (S+1, T2+S+1) matrix,  time path of Euler errors for
+                   optimal savings decisions by age
     rp           = integer in [1, S-1], remaining periods in incomplete
                    lifetime individual's life
+    n_S0_guess   = scalar, guess for final age s=E+S labor supply in t=0
+    b_Sp10_guess = scalar, guess for final age s=E+S+1 savings in t=0
+    nb_guess     = (2*rp,) vector, initial guesses for labor supply and
+                   savings (n_s, b_sp1)
+    b_S0         = scalar, initial wealth in final age s=E+S in t=0
+    r0           = scalar, initial period t=0 interest rate r_0
+    w0           = scalar, initial period t=0 wage w_0
+    BQ0          = scalar, initial period t=0 total bequests BQ_0
+    nbS0_args    = length 7 tuple, arguments (b_S0, r0, w0, BQ0,
+                   rho_{s=E+S,t=0}, TP_EulDif, p) to pass into
+                   get_nb_errors()
+    results_nbS0 = opt.root results object
+    err_msg      = string, error message text string
+    n_S0         = scalar, optimal final age labor supply in period t=0
+    b_Sp10       = scalar, optimal final age savings in period t=0
+    n_S0_err     = scalar, final age labor supply Euler error in t=0
+    b_Sp10_err   = scalar, final age savings Euler error in t=0
+    c_S0         = scalar > 0, final age consumption in period t=0
+    DiagMask     = (rp, rp) boolean identity matrix
+    n_s_guess    = (rp,) vector, initial guess for labor supply n_s over
+                   remaining life periods
+    b_sp1_guess  = (rp,) vector, initial guess for savings b_sp1 over
+                   remaining life periods
+    b_1          = scalar, initial wealth of remaining life periods
+    rho_st       = (rp,) vector, mortality rates by age over remaining
+                   life periods
+    c_s          = (rp,) vector, consumption by age over remaining life
+                   periods
+    n_s          = (rp,) vector, labor supply by age over remaining life
+                   periods
+    b_s          = (rp+1,) vector, wealth or savings by age over
+                   remaining life periods
+    n_errors     = (rp,) vector, labor supply Euler errors by age
+    b_errors     = (rp,) vector, savings Euler errors by age
 
     FILES CREATED BY THIS FUNCTION: None
 
-    RETURNS: c_s_path, n_s_path, b_s_path, c_ms_path, n_s_err_path,
-             b_s_err_path
+    RETURNS: c_s_path, n_s_path, b_s_path, n_s_err_path, b_s_err_path
     --------------------------------------------------------------------
     '''
     ss_output, p = cnb_args
