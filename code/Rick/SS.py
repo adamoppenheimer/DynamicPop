@@ -1,17 +1,17 @@
 '''
 ------------------------------------------------------------------------
 This module contains the functions used to solve the steady state of
-the model with S-period lived agents, endogenous labor supply, and
-multiple static industries from Chapter 17 of the OG textbook.
+the model with S-period lived agents, endogenous labor supply,
+non-constant demographics, bequests, and productivity growth.
 
 This Python module imports the following module(s):
     households.py
-    industries.py
+    firms.py
     aggregates.py
     utilities.py
 
 This Python module defines the following function(s):
-    rw_errors()
+    rBQ_errors()
     get_SS()
     ss_graphs()
 ------------------------------------------------------------------------
@@ -46,13 +46,48 @@ def rBQ_errors(rBQ_vals, *args):
     args     = length 2 tuple, (nb_guess, p)
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION:
-        asdf
+        firms.get_wt()
+        hh.get_cnb_vecs()
+        aggr.get_Lt()
+        aggr.get_Kt()
+        firms.get_rt()
+        aggr.get_BQt()
 
     OBJECTS CREATED WITHIN FUNCTION:
+    nb_buess   = (2S,) vector, initial guesses for n_s and b_sp1
+    p          = parameters class object
+    r_init     = scalar, initial guess for steady-state interest rate
+    BQ_init    = scalar, initial guess for steady-state total bequests
+    w          = scalar, steady-state wage implied by r_init
+    b_init     = scalar = 0, initial wealth of initial age individuals
+    r_path     = (S,) vector, constant interest rate time path over
+                 lifetime of individual
+    w_path     = (S,) vector, constant wage time path over lifetime of
+                 individual
+    BQ_path    = (S,) vector, constant total bequests time path over
+                 lifetime of individual
+    c_s        = (S,) vector, steady-state consumption by age
+    n_s        = (S,) vector, steady-state labor supply by age
+    b_s        = (S+1,) vector, steady-state wealth or savings by age
+    n_errors   = (S,) vector, errors associated with optimal labor
+                 supply solution
+    b_errors   = (S,) vector, errors associated with optimal savings
+                 solution
+    L          = scalar, aggregate labor implied by household and firm
+                 optimization
+    K          = scalar, aggregate capital implied by household and firm
+                 optimization
+    r_new      = scalar, new value of r implied by household and firm
+                 optimization
+    BQ_new     = scalar, new value of BQ implied by household and firm
+                 optimization
+    r_error    = scalar, difference between r_new and r_init
+    BQ_error   = scalar, difference between BQ_new and BQ_init
+    rBQ_errors = (2,) vector, r_error and BQ_error
 
     FILES CREATED BY THIS FUNCTION: None
 
-    RETURNS: rw_errors
+    RETURNS: rBQ_errors
     --------------------------------------------------------------------
     '''
     (nb_guess, p) = args
@@ -91,95 +126,68 @@ def get_SS(rBQ_init, p, graphs=False):
     root finder method in r and w for the outer loop
     --------------------------------------------------------------------
     INPUTS:
-    rw_init = (2,) vector, initial guesses for (rss_init, wss_init)
-    p       = parameters class object
-    graphs  = boolean, =True if output steady-state graphs
+    rBQ_init = (2,) vector, initial guesses for (rss_init, BQss_init)
+    p        = parameters class object
+    graphs   = boolean, =True if output steady-state graphs
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION:
+        rBQ_errors()
+        firms.get_wt()
         hh.get_cnb_vecs()
-        hh.get_cms()
-        indust.get_KLrat()
-        indust.get_pm()
-        indust.get_pM
-        indust.get_r()
-        indust.get_w()
-        aggr.get_Cm()
-        aggr.get_Lm_ss()
-        aggr.get_Ym()
+        aggr.get_Lt()
+        aggr.get_Kt()
+        firms.get_Yt()
+        C_ss = aggr.get_Ct()
+        I_ss = aggr.get_It()
+        NX_ss = aggr.get_NXt()
         utils.print_time()
         ss_graphs()
 
     OBJECTS CREATED WITHIN FUNCTION:
-    start_time = scalar > 0, clock time at beginning of program
-    r_init     = scalar > -delta, initial guess for steady-state
-                 interest rate
-    c1_init    = scalar > 0, initial guess for first period consumpt'n
-    S          = integer in [3, 80], number of periods an individual
-                 lives
-    beta       = scalar in (0,1), discount factor for each model per
-    sigma      = scalar > 0, coefficient of relative risk aversion
-    l_tilde    = scalar > 0, time endowment for each agent each period
-    b_ellip    = scalar > 0, fitted value of b for elliptical disutility
-                 of labor
-    upsilon    = scalar > 1, fitted value of upsilon for elliptical
-                 disutility of labor
-    chi_n_vec  = (S,) vector, values for chi^n_s
-    A          = scalar > 0, total factor productivity parameter in
-                 firms' production function
-    alpha      = scalar in (0,1), capital share of income
-    delta      = scalar in [0,1], model-period depreciation rate of
-                 capital
-    Bsct_Tol   = scalar > 0, tolderance level for outer-loop bisection
-                 method
-    Eul_Tol    = scalar > 0, tolerance level for inner-loop root finder
-    EulDiff    = Boolean, =True if want difference version of Euler
-                 errors beta*(1+r)*u'(c2) - u'(c1), =False if want
-                 ratio version [beta*(1+r)*u'(c2)]/[u'(c1)] - 1
-    xi         = scalar in (0, 1], SS updating parameter in outer-loop
-                 bisection method
-    maxiter    = integer >= 1, maximum number of iterations in outer
-                 loop bisection method
-    iter_SS    = integer >= 0, index of iteration number
-    dist       = scalar > 0, distance metric for current iteration
-    rw_params  = length 3 tuple, (A, alpha, delta) args to pass into
-                 firms.get_r() and firms.get_w()
-    w_init     = scalar, initial value for wage
-    inner_args = length 14 tuple, args to pass into inner_loop()
-    K_new      = scalar > 0, updated K given r_init, w_init, and bvec
-    L_new      = scalar > 0, updated L given r_init, w_init, and nvec
-    cvec       = (S,) vector, updated values for lifetime consumption
-    nvec       = (S,) vector, updated values for lifetime labor supply
-    bvec       = (S,) vector, updated values for lifetime savings
-                 (b1, b2,...bS)
-    b_Sp1      = scalar, updated value for savings in last period,
-                 should be arbitrarily close to zero
-    r_new      = scalar > 0, updated interest rate given bvec and nvec
-    w_new      = scalar > 0, updated wage given bvec and nvec
-    n_errors   = (S,) vector, labor supply Euler errors given r_init
-                 and w_init
-    b_errors   = (S-1,) vector, savings Euler errors given r_init and
-                 w_init
-    all_errors = (2S,) vector, (n_errors, b_errors, b_Sp1)
-    c_ss       = (S,) vector, steady-state lifetime consumption
-    n_ss       = (S,) vector, steady-state lifetime labor supply
-    b_ss       = (S,) vector, steady-state wealth enter period with
-                 (b1, b2, ...bS)
-    b_Sp1_ss   = scalar, steady-state savings for period after last
-                 period of life. b_Sp1_ss approx. 0 in equilibrium
-    n_err_ss   = (S,) vector, lifetime labor supply Euler errors
-    b_err_ss   = (S-1) vector, lifetime savings Euler errors
-    r_ss       = scalar > 0, steady-state interest rate
-    w_ss       = scalar > 0, steady-state wage
-    K_ss       = scalar > 0, steady-state aggregate capital stock
-    L_ss       = scalar > 0, steady-state aggregate labor
-    Y_params   = length 2 tuple, (A, alpha)
-    Y_ss       = scalar > 0, steady-state aggregate output (GDP)
-    C_ss       = scalar > 0, steady-state aggregate consumption
-    RCerr_ss   = scalar, resource constraint error
-    ss_time    = scalar, seconds elapsed for steady-state computation
-    ss_output  = length 14 dict, steady-state objects {n_ss, b_ss,
-                 c_ss, b_Sp1_ss, w_ss, r_ss, K_ss, L_ss, Y_ss, C_ss,
-                 n_err_ss, b_err_ss, RCerr_ss, ss_time}
+    start_time  = scalar > 0, clock time at beginning of program
+    nvec_guess  = (S,) vector, initial guess for optimal household labor
+                  supply n_s
+    bvec_guess  = (S,) vector, initial guess for optimal household
+                  savings b_sp1
+    nb_guess    = (2S,) vector, initial guesses for optimal household
+                  labor supply and savings (n_s, b_sp1)
+    rBQ_args    = length 2 tuple, (nb_guess, p)
+    results_rBQ = root results object
+    err_msg     = string, error message text string
+    r_ss        = scalar > -delta, steady-state interest rate
+    BQ_ss       = scalar > 0, steady-state total bequests
+    r_err_ss    = scalar, error in steady-state optimal solution firm
+                  first order condition for r_ss
+    BQ_err_ss   = scalar, error in steady-state optimal solution
+                  bequests law of motion for BQ_ss
+    w_ss        = scalar > 0, steady-state wage
+    b_init      = scalar = 0, initial wealth of initial age individuals
+    r_path      = (S,) vector, constant interest rate time path over
+                  lifetime of individual
+    w_path      = (S,) vector, constant wage time path over lifetime of
+                  individual
+    BQ_path     = (S,) vector, constant total bequests time path over
+                  lifetime of individual
+    c_ss        = (S,) vector, steady-state consumption by age
+    n_ss        = (S,) vector, steady-state labor supply by age
+    b_ss        = (S+1,) vector, steady-state wealth or savings by age
+    n_err_ss    = (S,) vector, errors associated with optimal labor
+                  supply solution
+    b_err_ss    = (S,) vector, errors associated with optimal savings
+                  solution
+    L_ss        = scalar > 0, steady-state aggregate labor
+    K_ss        = scalar > 0, steady-state aggregate capital stock
+    Y_ss        = scalar > 0, steady-state aggregate output
+    C_ss        = scalar > 0, steady-state aggregate consumption
+    I_ss        = scalar, steady-state aggregate investment
+    NX_ss       = scalar, steady-state net exports
+    RCerr_ss    = scalar, steady-state resource constraint (goods market
+                  clearing) error
+    ss_time     = scalar, seconds elapsed for steady-state computation
+    ss_output   = length 18 dictionary, steady-state output {c_ss, n_ss,
+                  b_ss, n_err_ss, b_err_ss, r_ss, w_ss, BQ_ss, r_err_ss,
+                  BQ_err_ss, L_ss, K_ss, Y_ss, C_ss, I_ss, NX_ss,
+                  RCerr_ss, ss_time}
 
     FILES CREATED BY THIS FUNCTION: None
 
@@ -264,26 +272,22 @@ def ss_graphs(c_ss, n_ss, b_ss, p):
     INPUTS:
     c_ss = (S,) vector, steady-state lifetime consumption
     n_ss = (S,) vector, steady-state lifetime labor supply
-    b_ss = (S+1,) vector, steady-state lifetime savings (b1, b2, ...bS)
+    b_ss = (S+1,) vector, steady-state lifetime savings (b1, b2,...bSp1)
             where b1 = 0
 
     OTHER FUNCTIONS AND FILES CALLED BY THIS FUNCTION:
 
     OBJECTS CREATED WITHIN FUNCTION:
     cur_path    = string, path name of current directory
-    output_fldr = string, folder in current path to save files
-    output_dir  = string, total path of images folder
+    image_fldr  = string, folder in current path to save files
+    image_dir   = string, total path of images folder
     output_path = string, path of file name of figure to be saved
-    S           = integer in [3, 80], number of periods an individual
-                  lives
-    b_ss_full   = (S+1,) vector, b_ss with zero appended on end.
-                  (b1, b2, ...bS, bSp1) where b1, bSp1 = 0
-    age_pers_c  = (S,) vector, ages from 1 to S
-    age_pers_b  = (S+1,) vector, ages from 1 to S+1
+    age_pers_c  = (S,) vector, vector of age periods 21 to 100
+    age_pers_b  = (S+1,) vector, vector of age periods including period
+                  after death 21 to 101
 
     FILES CREATED BY THIS FUNCTION:
         SS_bc.png
-        SS_cm.png
         SS_n.png
 
     RETURNS: None

@@ -1,6 +1,17 @@
 '''
+------------------------------------------------------------------------
 Create a parameters class that instantiates initial values of all
-exogenous parameters
+exogenous parameters for the OG model with endogenous labor,
+non-constant demographics, bequests, and productivity growth.
+
+This Python script imports the following module(s):
+    elliputil.py
+    demographics.py
+
+This Python script calls the following function(s):
+    elp.fit_ellip_CFE()
+    demog.get_pop_objs()
+------------------------------------------------------------------------
 '''
 
 # Import packages
@@ -87,52 +98,61 @@ class parameters:
         '''
         Demographic parameters
         ----------------------------------------------------------------
-        min_yr        = integer > 0,
-        max_yr        = integer > min_yr,
-        curr_year     = integer >= 2020
-        omega_tp      = (S, T2+1) matrix, transition path of the
-                        stationarized population distribution by age for
-                        economically active ages
+        min_yr        = integer > 0, minimum year represented in the
+                        data
+        max_yr        = integer > min_yr, maximum number of years
+                        represented in the data
+        curr_year     = integer >= 2020, current year represented by t=0
         omega_m1      = (S,) vector, stationarized economically active
                         population distribution in period t=-1 right
                         before current period
-        g_n_ss        = (T2+1,) vector,
+        omega_tp      = (S, T2+1) matrix, transition path of the
+                        stationarized population distribution by age for
+                        economically active ages
         omega_ss      = (S,) vector, steady-state stationarized
                         population distribution by age for economically
                         active ages
-        surv_rates    =
-        mort_rates    =
-        g_n_path      =
-        imm_rates_mat =
-        rho_ss        = (S,) vector, steady-state mortality rates by age
-                        for economically active ages
-        rho_m1        =
-        rho_st        =
+        g_n_path      = (T2,) vector, time path of the population growth
+                        rate
+        g_n_tp        = (T2 + S,) vector, time path of the population
+                        growth rate
+        g_n_ss        = scalar, steady-state population growth rate
+        surv_rates    = (S,) vector, constant per-period survival rate
+                        of particular age cohort of cohort
+        imm_rates_mat = (T2, S) matrix, time path of immigration rates
+                        by age
+        rho_m1        = (S,) vector, mortality rates by age in the
+                        period t=-1 before the initial period
+        rho_st        = (S, T2+S) matrix, time path of mortality rates
+                        by age
+        rho_ss        = (S,) vector, constant per-period mortality rate
+                        of particular age cohort
+        i_st          = (S, T2+1) matrix, time path of immigration rates
+                        by age
         i_ss          = (S,) vector, steady-state immigration rates by
                         age for economically active ages
-        i_st          =
         ----------------------------------------------------------------
         '''
         self.min_yr = 1
         self.max_yr = self.E + self.S
         self.curr_year = 2020
-        (omega_tp, g_n_ss, omega_ss, surv_rates, mort_rates, g_n_path,
+        (omega_tp, g_n_ss, omega_ss, surv_rates, rho_ss, g_n_path,
             imm_rates_mat, omega_m1) = \
             demog.get_pop_objs(self.E, self.S, self.T1, self.min_yr,
                                self.max_yr, self.curr_year,
                                GraphDiag=False)
-        self.rho_ss = mort_rates
+        self.rho_ss = rho_ss
         self.i_ss = imm_rates_mat.T[:, self.T1]
         self.omega_ss = omega_ss
         self.omega_tp = \
             np.append(omega_tp.T, omega_ss.reshape((self.S, 1)), axis=1)
-        self.rho_m1 = mort_rates
+        self.rho_m1 = rho_ss
         self.omega_m1 = omega_m1
         self.g_n_ss = g_n_ss
         self.g_n_tp = \
             np.append(g_n_path.reshape((1, self.T1 + self.S)),
-                      g_n_ss * np.ones((1, self.T2 - self.T1 +
-                                        1)), axis=1).flatten()
+                      g_n_ss * np.ones((1, self.T2 - self.T1)),
+                      axis=1).flatten()
         self.rho_st = np.tile(self.rho_ss.reshape((self.S, 1)),
                               (1, self.T2 + self.S))
         self.i_st = np.append(imm_rates_mat.T,
