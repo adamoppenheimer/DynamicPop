@@ -11,6 +11,7 @@ import scipy.optimize as opt
 import scipy.interpolate as si
 import pandas as pd
 import parameter_plots as pp
+import pickle
 
 
 # create output directory for figures
@@ -19,6 +20,11 @@ OUTPUT_DIR = os.path.join(CUR_PATH, 'OUTPUT', 'Demographics')
 if os.access(OUTPUT_DIR, os.F_OK) is False:
     os.makedirs(OUTPUT_DIR)
 
+os.chdir(CUR_PATH + '/..')
+
+import util
+
+os.chdir(CUR_PATH)
 
 '''
 ------------------------------------------------------------------------
@@ -26,8 +32,56 @@ Define functions
 ------------------------------------------------------------------------
 '''
 
+def forecast_pop(country, start_yr, end_yr=False):
+    '''
+    This function uses forecasted fertility, mortality,
+    and immigration rates to forecast population for
+    a range of years
 
-def get_fert(totpers, min_yr, max_yr, graph=False):
+    Args:
+        country: country that is source of data
+        start_yr: first year to forecast
+        end_yr: last year to forecast. If False, set equal to start_yr
+
+    Returns:
+        forecasted_pop (Pandas dataframe): population for each year
+    '''
+    if not end_yr:
+        end_yr = start_yr
+
+    pop_file = os.path.join(
+        CUR_PATH, 'data', 'demographic', country, 'clean', 'pop.p')
+    fert_file = os.path.join(
+        CUR_PATH, 'data', 'demographic', country, 'parameters', 'fert.p')
+    mort_file = os.path.join(
+        CUR_PATH, 'data', 'demographic', country, 'parameters', 'mort.p')
+    imm_file = os.path.join(
+        CUR_PATH, 'data', 'demographic', country, 'parameters', 'imm.p')
+
+    pop_data = pickle.load(open(pop_file, 'rb') )
+    fert_params = pickle.load(open(fert_file, 'rb') )
+    mort_params = pickle.load(open(mort_file, 'rb') )
+    imm_params = pickle.load(open(imm_file, 'rb') )
+
+    ages = np.linspace(0, 99, 100).astype(int)
+    birth_ages = np.linspace(14, 50, 37)
+
+    # Access most recent year of population data
+    starting_pop = pop_data[max(pop_data.columns)]
+    prev_pop = starting_pop.copy()
+    forecasted_pop = pd.DataFrame()
+
+    for year in range(max(pop_data.columns) + 1, end_yr + 1):
+        pred_fert = util.forecast(fert_params, year, birth_ages, datatype='fertility', options=False)
+        pred_mort = util.forecast(mort_params, year, ages, datatype='mortality', options=False)
+        pred_imm = util.forecast(imm_params, year, ages, datatype='immigration', options={'transition_year': 2015})
+        prev_pop = util.predict_population(pred_fert, pred_mort, pred_imm, prev_pop)
+        if year >= start_yr:
+            forecasted_pop[year] = prev_pop
+
+    return forecasted_pop
+
+def get_fert(totpers, min_age, max_age, year, country, graph=False):
     '''
     This function generates a vector of fertility rates by model period
     age that corresponds to the fertility rate data by age in years
@@ -37,9 +91,11 @@ def get_fert(totpers, min_yr, max_yr, graph=False):
 
     Args:
         totpers (int): total number of agent life periods (E+S), >= 3
-        min_yr (int): age in years at which agents are born, >= 0
-        max_yr (int): age in years at which agents die with certainty,
+        min_age (int): age in years at which agents are born, >= 0
+        max_age (int): age in years at which agents die with certainty,
             >= 4
+        year (int): year of fertility data
+        country (str): country that is source of data
         graph (bool): =True if want graphical output
 
     Returns:
@@ -47,35 +103,34 @@ def get_fert(totpers, min_yr, max_yr, graph=False):
             of life
 
     '''
-    # Get current population data (2013) for weighting
-    pop_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', 'pop_data.csv')
-    pop_data = pd.read_csv(pop_file, thousands=',')
-    pop_data_samp = pop_data[(pop_data['Age'] >= min_yr - 1) &
-                             (pop_data['Age'] <= max_yr - 1)]
-    curr_pop = np.array(pop_data_samp['2013'], dtype='f')
+    # Get population data from year for weighting
+    pop_data = forecast_pop(country, year)
+    pop_data_samp = pop_data.iloc[max(min_age - 1, 0): min(max_age, 100)]
+    curr_pop = np.array(pop_data_samp[year], dtype='f')
     curr_pop_pct = curr_pop / curr_pop.sum()
-    # Get fertility rate by age-bin data
-    fert_data = (np.array([0.0, 0.0, 0.3, 12.3, 47.1, 80.7, 105.5, 98.0,
-                           49.3, 10.4, 0.8, 0.0, 0.0]) / 2000)
-    # Mid points of age bins
-    age_midp = np.array([9, 10, 12, 16, 18.5, 22, 27, 32, 37, 42, 47,
-                         55, 56])
+    # Fertility parameters
+    fert_file = os.path.join(
+        CUR_PATH, 'data', 'demographic', country, 'parameters', 'fert.p')
+    fert_params = pickle.load(open(fert_file, 'rb') )
+    # Birth ages
+    birth_ages = np.linspace(14, 50, 37)
+    # Predicted fertility data
+    pred_fert = util.forecast(fert_params, year, birth_ages, datatype='fertility', options=False)
     # Generate interpolation functions for fertility rates
-    fert_func = si.interp1d(age_midp, fert_data, kind='cubic')
+    fert_func = si.interp1d(birth_ages, pred_fert, kind='cubic')
     # Calculate average fertility rate in each age bin using trapezoid
     # method with a large number of points in each bin.
-    binsize = (max_yr - min_yr + 1) / totpers
+    binsize = (max_age - min_age + 1) / totpers
     num_sub_bins = float(10000)
     len_subbins = (np.float64(100 * num_sub_bins)) / totpers
     age_sub = (np.linspace(np.float64(binsize) / num_sub_bins,
-                           np.float64(max_yr),
-                           int(num_sub_bins * max_yr)) - 0.5 *
+                           np.float64(max_age),
+                           int(num_sub_bins * max_age)) - 0.5 *
                np.float64(binsize) / num_sub_bins)
     curr_pop_sub = np.repeat(np.float64(curr_pop_pct) / num_sub_bins,
                              num_sub_bins)
     fert_rates_sub = np.zeros(curr_pop_sub.shape)
-    pred_ind = (age_sub > age_midp[0]) * (age_sub < age_midp[-1])
+    pred_ind = (age_sub > birth_ages[0]) * (age_sub < birth_ages[-1])
     age_pred = age_sub[pred_ind]
     fert_rates_sub[pred_ind] = np.float64(fert_func(age_pred))
     fert_rates = np.zeros(totpers)
@@ -89,7 +144,7 @@ def get_fert(totpers, min_yr, max_yr, graph=False):
             curr_pop_sub[beg_sub_bin:end_sub_bin].sum())
 
     if graph:
-        pp.plot_fert_rates(fert_func, age_midp, totpers, min_yr, max_yr,
+        pp.plot_fert_rates(fert_func, age_midp, totpers, min_age, max_age,
                            fert_data, fert_rates, output_dir=OUTPUT_DIR)
 
     return fert_rates
