@@ -206,7 +206,7 @@ def get_SS(rBQ_init, p, graphs=False):
                    'solve. results_rBQ.success=False')
         raise ValueError(err_msg)
     else:
-        print('SS SUCESSS: steady-state solution converged.')
+        print('SS SUCCESS: steady-state solution converged.')
 
     # print(results_rw)
     r_ss, BQ_ss = results_rBQ.x
@@ -295,7 +295,7 @@ def ss_graphs(c_ss, n_ss, b_ss, p):
     '''
     # Create directory if images directory does not already exist
     cur_path = os.path.split(os.path.abspath(__file__))[0]
-    image_fldr = 'OUTPUT/SS/images'
+    image_fldr = 'OUTPUT/SS/' + p.demog_type + '/images'
     image_dir = os.path.join(cur_path, image_fldr)
     if not os.access(image_dir, os.F_OK):
         os.makedirs(image_dir)
