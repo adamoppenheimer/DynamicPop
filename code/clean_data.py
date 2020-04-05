@@ -26,9 +26,7 @@ pickle.dump(pop_data, open(newdatadir + 'pop.p', 'wb') )
 pickle.dump( (pop_data, fert_data), open(newdatadir + 'fert.p', 'wb') )
 pickle.dump( (pop_data, infant_pop, non_infant_mort, infant_mort), open(newdatadir + 'mort.p', 'wb') )
 
-imm = util.calc_imm_resid(fert_data, mort_data, pop_data)
-imm_rate = imm / pop_data
-imm_rate = imm_rate.drop([1947, 2016, 2017], axis=1)
+imm_rate = util.calc_imm_resids(fert_data, mort_data, pop_data)
 
 drop_immyears = np.linspace(1948, 1996, 1996 - 1948 + 1)
 imm_rate = imm_rate.drop(drop_immyears, axis=1)

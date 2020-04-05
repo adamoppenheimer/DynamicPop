@@ -336,7 +336,7 @@ def create_graphs(tpi_output, p):
     '''
     # Create directory if images directory does not already exist
     cur_path = os.path.split(os.path.abspath(__file__))[0]
-    image_fldr = 'OUTPUT/TP/images'
+    image_fldr = 'OUTPUT/TP/' + p.demog_type + '/images'
     image_dir = os.path.join(cur_path, image_fldr)
     if not os.access(image_dir, os.F_OK):
         os.makedirs(image_dir)

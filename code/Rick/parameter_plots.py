@@ -1,6 +1,7 @@
 # import packages
 import numpy as np
 import os
+import scipy.interpolate as si
 import matplotlib.pyplot as plt
 # import matplotlib
 CUR_PATH = os.path.split(os.path.abspath(__file__))[0]
@@ -248,10 +249,10 @@ def plot_fert_rates(fert_func, age_midp, totpers, min_yr, max_yr,
     # Generate finer age vector and fertility rate vector for
     # graphing cubic spline interpolating function
     age_fine_pred = np.linspace(age_midp[0], age_midp[-1], 300)
-    fert_fine_pred = fert_func(age_fine_pred)
+    fert_fine_pred = np.float64(si.splev(age_fine_pred, fert_func))
     age_fine = np.hstack((min_yr, age_fine_pred, max_yr))
     fert_fine = np.hstack((0, fert_fine_pred, 0))
-    age_mid_new = (np.linspace(np.float(max_yr) / totpers, max_yr,
+    age_mid_new = (np.linspace(np.float(max_yr) / totpers + min_yr, max_yr,
                                totpers) - (0.5 * np.float(max_yr) /
                                            totpers))
 
@@ -266,9 +267,8 @@ def plot_fert_rates(fert_func, age_midp, totpers, min_yr, max_yr,
     plt.xlabel(r'Age $s$')
     plt.ylabel(r'Fertility rate $f_{s}$')
     plt.legend(loc='upper right')
-    plt.text(-5, -0.023,
-             'Source: National Vital Statistics Reports, ' +
-             'Volume 64, Number 1, January 15, 2015.', fontsize=9)
+    plt.text(-5, -0.04,
+             'Source: Human  Fertility  Collection, 2018.', fontsize=9)
     plt.tight_layout(rect=(0, 0.035, 1, 1))
     # Save or return figure
     if output_dir:
@@ -301,7 +301,7 @@ def plot_mort_rates_data(totpers, min_yr, max_yr, age_year_all,
         None
 
     '''
-    age_mid_new = (np.linspace(np.float(max_yr) / totpers, max_yr,
+    age_mid_new = (np.linspace(np.float(max_yr) / totpers + min_yr, max_yr,
                                totpers) - (0.5 * np.float(max_yr) /
                                            totpers))
     fig, ax = plt.subplots()
@@ -322,9 +322,8 @@ def plot_mort_rates_data(totpers, min_yr, max_yr, age_year_all,
     plt.xlabel(r'Age $s$')
     plt.ylabel(r'Mortality rate $\rho_{s}$')
     plt.legend(loc='upper left')
-    plt.text(-5, -0.2,
-             'Source: Actuarial Life table, 2011 Social Security ' +
-             'Administration.', fontsize=9)
+    plt.text(-5, -0.24,
+             'Source: Japanese  Mortality  Database, 2018.', fontsize=9)
     plt.tight_layout(rect=(0, 0.03, 1, 1))
     # Save or return figure
     if output_dir:
@@ -360,7 +359,11 @@ def plot_omega_fixed(age_per_EpS, omega_SS_orig, omega_SSfx, E, S,
     plt.legend(loc='upper right')
     # Save or return figure
     if output_dir:
+        output_dir, demo_type = output_dir
+        output_dir = os.path.join(output_dir, demo_type)
         output_path = os.path.join(output_dir, 'OrigVsFixSSpop')
+        if not os.access(output_dir, os.F_OK):
+            os.makedirs(output_dir)
         plt.savefig(output_path)
         plt.close()
     else:
@@ -390,7 +393,11 @@ def plot_imm_fixed(age_per_EpS, imm_rates_orig, imm_rates_adj, E, S,
     plt.legend(loc='upper center')
     # Save or return figure
     if output_dir:
+        output_dir, demo_type = output_dir
+        output_dir = os.path.join(output_dir, demo_type)
         output_path = os.path.join(output_dir, 'OrigVsAdjImm')
+        if not os.access(output_dir, os.F_OK):
+            os.makedirs(output_dir)
         plt.savefig(output_path)
         plt.close()
     else:
@@ -423,9 +430,14 @@ def plot_population_path(age_per_EpS, pop_2013_pct, omega_path_lev,
     plt.xlabel(r'Age $s$')
     plt.ylabel(r"Pop. dist'n $\omega_{s}$")
     plt.legend(loc='lower left')
+    plt.tight_layout()
     # Save or return figure
     if output_dir:
+        output_dir, demo_type = output_dir
+        output_dir = os.path.join(output_dir, demo_type)
         output_path = os.path.join(output_dir, 'PopDistPath')
+        if not os.access(output_dir, os.F_OK):
+            os.makedirs(output_dir)
         plt.savefig(output_path)
         plt.close()
     else:

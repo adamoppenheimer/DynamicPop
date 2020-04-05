@@ -133,12 +133,13 @@ class parameters:
                         age for economically active ages
         ----------------------------------------------------------------
         '''
-        self.min_yr = 1
-        self.max_yr = self.E + self.S
+        self.demog_type = 'partial_dynamic'
+        self.min_yr = 0
+        self.max_yr = self.E + self.S - 1
         self.curr_year = 2020
         (omega_tp, g_n_ss, omega_ss, surv_rates, rho_ss, g_n_path,
             imm_rates_mat, omega_m1) = \
-            demog.get_pop_objs(self.E, self.S, self.T1, self.min_yr,
+            demog.get_pop_objs_dynamic_partial(self.E, self.S, self.T1, self.min_yr,
                                self.max_yr, self.curr_year,
                                GraphDiag=False)
         self.rho_ss = rho_ss
@@ -222,3 +223,92 @@ class parameters:
         self.TP_EulDif = True
         self.xi_TP = 0.2
         self.maxiter_TP = 1000
+
+    def set_demog(self, demog_type):
+        '''
+        Update parameters class to use various demographic setting
+
+        Args:
+            demog_type (string): 'static' for static demographics,
+                'dynamic' for dynamic demographics
+        '''
+        '''
+        Demographic parameters
+        ----------------------------------------------------------------
+        min_yr        = integer > 0, minimum year represented in the
+                        data
+        max_yr        = integer > min_yr, maximum number of years
+                        represented in the data
+        curr_year     = integer >= 2020, current year represented by t=0
+        omega_m1      = (S,) vector, stationarized economically active
+                        population distribution in period t=-1 right
+                        before current period
+        omega_tp      = (S, T2+1) matrix, transition path of the
+                        stationarized population distribution by age for
+                        economically active ages
+        omega_ss      = (S,) vector, steady-state stationarized
+                        population distribution by age for economically
+                        active ages
+        g_n_path      = (T2,) vector, time path of the population growth
+                        rate
+        g_n_tp        = (T2 + S,) vector, time path of the population
+                        growth rate
+        g_n_ss        = scalar, steady-state population growth rate
+        surv_rates    = (S,) vector, constant per-period survival rate
+                        of particular age cohort of cohort
+        imm_rates_mat = (T2, S) matrix, time path of immigration rates
+                        by age
+        rho_m1        = (S,) vector, mortality rates by age in the
+                        period t=-1 before the initial period
+        rho_st        = (S, T2+S) matrix, time path of mortality rates
+                        by age
+        rho_ss        = (S,) vector, constant per-period mortality rate
+                        of particular age cohort
+        i_st          = (S, T2+1) matrix, time path of immigration rates
+                        by age
+        i_ss          = (S,) vector, steady-state immigration rates by
+                        age for economically active ages
+        ----------------------------------------------------------------
+        '''
+        self.demog_type = demog_type
+        self.min_yr = 0
+        self.max_yr = self.E + self.S - 1
+        self.curr_year = 2020
+        if demog_type == 'static':
+            (omega_tp, g_n_ss, omega_ss, surv_rates, rho_path_lev, g_n_path,
+                imm_rates_mat, omega_m1) = \
+                demog.get_pop_objs_static(self.E, self.S, self.T1, self.min_yr,
+                               self.max_yr, self.curr_year,
+                               GraphDiag=True)
+            self.rho_ss = rho_path_lev.T[:, self.T2]
+            self.rho_st = rho_path_lev.T
+        elif demog_type == 'dynamic_partial':
+            (omega_tp, g_n_ss, omega_ss, surv_rates, rho_ss, g_n_path,
+                imm_rates_mat, omega_m1) = \
+                demog.get_pop_objs_dynamic_partial(self.E, self.S, self.T1, self.min_yr,
+                               self.max_yr, self.curr_year,
+                               GraphDiag=True)
+            self.rho_ss = rho_ss
+            self.rho_st = np.tile(self.rho_ss.reshape((self.S, 1)),
+                              (1, self.T2 + self.S))
+        elif demog_type == 'dynamic_full':
+            (omega_tp, g_n_ss, omega_ss, surv_rates, rho_path_lev, g_n_path,
+                imm_rates_mat, omega_m1) = \
+                demog.get_pop_objs_dynamic_full(self.E, self.S, self.T1, self.min_yr,
+                               self.max_yr, self.curr_year,
+                               GraphDiag=True)
+            self.rho_ss = rho_path_lev.T[:, self.T2]
+            self.rho_st = rho_path_lev.T
+        self.i_ss = imm_rates_mat.T[:, self.T1]
+        self.omega_ss = omega_ss
+        self.omega_tp = \
+            np.append(omega_tp.T, omega_ss.reshape((self.S, 1)), axis=1)
+        self.rho_m1 = self.rho_ss
+        self.omega_m1 = omega_m1
+        self.g_n_ss = g_n_ss
+        self.g_n_tp = \
+            np.append(g_n_path.reshape((1, self.T1 + self.S)),
+                      g_n_ss * np.ones((1, self.T2 - self.T1)),
+                      axis=1).flatten()
+        self.i_st = np.append(imm_rates_mat.T,
+                              self.i_ss.reshape((self.S, 1)), axis=1)
