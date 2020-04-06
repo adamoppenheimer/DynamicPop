@@ -68,8 +68,12 @@ for age in ages:
     age_params.append([constant, beta, a, b, c, g])
     forecast = e ** (a * forecast_vals ** 2 + b * forecast_vals + c) + g
     plt.plot(forecast_years, forecast, label='Forecast')
-    plt.plot(years, estline, label='OLS estimate')
+    plt.plot(years, estline, label='OLS Estimate')
     plt.plot(imm_age, label='Age ' + str(age))
+    plt.xlabel(r'Year $t$')
+    plt.ylabel(r'Immigration Rate $i_{s,t}$')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     plt.legend()
     plt.savefig('graphs/' + datatype + '/age_forecasts/' + str(age))
     plt.close()

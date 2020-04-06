@@ -568,8 +568,12 @@ def gen_beta2_est(data, year, smooth, datatype, print_params=False, pop=False, p
         scale = np.sum(data * pop) / np.sum(gen_beta2 * pop)
 
     plt.plot(ages, gen_beta2 * scale,\
-            linewidth=2, label='Generalized Beta^2', color='r')
-    plt.plot(ages, data, label='True Fertility ' + str(year))
+            linewidth=2, label='Generalized Beta 2 Estimate', color='r')
+    plt.plot(ages, data, label=datatype.capitalize() + ' ' + str(year))
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Fertility Rate $f_{s,t}$')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     plt.legend()
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/' + str(year))
     plt.close()
@@ -601,8 +605,16 @@ def logistic_est(data, L_0, k_0, x_0, years, smooth, datatype, param='', flip=Fa
         plots.append(plt.plot(years, logistic_function(years_adj, L_MLE, k_MLE, x_MLE) + np.min(data)))
     else:
         plots.append(plt.plot(years, logistic_function(years, L_MLE, k_MLE, x_MLE) + np.min(data)))
-    plots[0][0].set_label(param)
-    plots[1][0].set_label(param + ' estimate')
+    if param != 'Scale':
+        lab = r'$' + param + r'$'
+    else:
+        lab = param
+    plots[0][0].set_label(lab)
+    plots[1][0].set_label(lab + ' Estimate')
+    plt.xlabel(r'Year $t$')
+    plt.ylabel(lab)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     plt.legend()
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param.lower() + '_predicted')
     if show_plot:
@@ -660,9 +672,13 @@ def poly_est(data, a_0, b_0, c_0, d_0, e_0, years, smooth, datatype, param='', p
     plots.append(plt.plot(years, gen_poly))
 
     plots[0][0].set_label(param)
-    plots[1][0].set_label(param + ' estimate')
+    plots[1][0].set_label(param + ' Estimate')
+    plt.xlabel(r'Year $t$')
+    plt.ylabel(param)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     plt.legend()
-    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param.lower() + '_predicted')
+    plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_' + param.lower().replace(' ', '_') + '_predicted')
     if show_plot:
         plt.show()
     plt.close()
@@ -895,6 +911,17 @@ def plot_data_transition(data, ages, start, end, smooth, datatype):
         data_yr = rolling_avg_year(data, year, smooth)
         ax.plot(ages[:len(data_yr)], data_yr, linewidth=2)
 
+    plt.xlabel(r'Age $s$')
+    if datatype == 'fertility':
+        y = r'Fertility Rate $f_{s,t}$'
+    elif datatype == 'mortality':
+        y = r'Mortality Rate $\rho_{s,t}$'
+    elif datatype == 'immigration':
+        y = r'Immigration Rate $i_{s,t}$'
+    plt.ylabel(y)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
+
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_true')
     plt.close()
 
@@ -914,6 +941,17 @@ def plot_forecast_transition(params, ages, start, end, smooth, datatype, options
     for year in range(start, end + 1):
         forecast_estimates = forecast(params, year, ages, datatype, options)
         plt.plot(ages, forecast_estimates, linewidth=2)
+
+    plt.xlabel(r'Age $s$')
+    if datatype == 'fertility':
+        y = r'Fertility Rate $f_{s,t}$'
+    elif datatype == 'mortality':
+        y = r'Mortality Rate $\rho_{s,t}$'
+    elif datatype == 'immigration':
+        y = r'Immigration Rate $i_{s,t}$'
+    plt.ylabel(y)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
 
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_predicted')
     plt.close()
@@ -941,6 +979,17 @@ def overlay_estimates(data, params, ages, start, end, smooth, datatype, options=
         data_yr = rolling_avg_year(data, year, smooth)
         ax.plot(ages[:len(data_yr)], data_yr, linewidth=2)
 
+    plt.xlabel(r'Age $s$')
+    if datatype == 'fertility':
+        y = r'Fertility Rate $f_{s,t}$'
+    elif datatype == 'mortality':
+        y = r'Mortality Rate $\rho_{s,t}$'
+    elif datatype == 'immigration':
+        y = r'Immigration Rate $i_{s,t}$'
+    plt.ylabel(y)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
+
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_aggregate_overlay_predicted')
     plt.close()
 
@@ -952,6 +1001,17 @@ def plot_2100(params, ages, smooth, datatype, options=False):
         forecast_estimates = forecast(params, year, ages, datatype, options)
         plt.plot(ages, forecast_estimates, linewidth=2, label=str(year))
 
+    plt.xlabel(r'Age $s$')
+    if datatype == 'fertility':
+        y = r'Fertility Rate $f_{s,t}$'
+    elif datatype == 'mortality':
+        y = r'Mortality Rate $\rho_{s,t}$'
+    elif datatype == 'immigration':
+        y = r'Immigration Rate $i_{s,t}$'
+    plt.ylabel(y)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     plt.legend()
+
     plt.savefig('graphs/' + datatype + '/smooth_' + str(smooth) + '/_2100')
     plt.close()
