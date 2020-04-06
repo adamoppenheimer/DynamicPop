@@ -242,8 +242,8 @@
 
 \noindent\textit{keywords:}\:
    Overlapping Generations Model,
-   Demographic Transitions,
-   Japanese Calibration
+   Demographic Transition,
+   Japan Calibration
 
 \vspace{3mm}
 
@@ -446,20 +446,20 @@ We consider four demographic models. The first model assumes that demographics a
 
 \paragraph{Fertility, Mortality, and Immigration Rates}
 
-In order to allow for a range of model years, we fit fertility and mortality rates using cubic spline interpolation. The fit of the interpolated data to the real data can be seen in \autoref{fig:\thesubsubsection1}. In this case, the fertility data is for all ages 14 to 50, and we impute fertility rates of 0 for all other ages; while the mortality data is for all ages from 0 to 99, and we set mortality to 1 at age 99. The interpolated function should exactly overlay the data, as it does. While in this case we consider only 1-year bins, the model allows for any positive bin size through the use of population-weighted fertility and mortality rates.
+In order to allow for a range of model years, we fit fertility and mortality rates using cubic spline interpolation. The fit of the interpolated data to the real data can be seen in \autoref{fig:\thesubsubsection1}. In this case, the fertility data is for all ages 14 to 50, and we impute fertility rates of 0 for all other ages; while the mortality data is for all ages from 0 to 99, and we set mortality to 1 at age 99. The interpolated function is fit at the midpoints of the data. It should exactly overlay the midpoint of the trend in the data, as it does. While in this case we consider only 1-year bins, the model allows for any positive bin size through the use of population-weighted fertility and mortality rates.
 
 \begin{figure}[H]
    \caption{\label{fig:\thesubsubsection1}Fertility and Mortality Rates by Age}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\DemoDir/fert_rates.png}
-      \caption{Japanese Fertility Rates by Age (2019, Forecasted)}
+      \caption{Japanese Fertility Rates by Age (2020, Forecasted)}
    \end{subfigure}% <-- this "%" symbol is important
    ~ % <-- this "~" symbol is important
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\DemoDir/mort_rates.png}
-      \caption{Japanese Mortality Rates by Age (2019, Forecasted)}
+      \caption{Japanese Mortality Rates by Age (2020, Forecasted)}
    \end{subfigure}
 \end{figure}
 
@@ -533,7 +533,7 @@ In order to allow for a range of model years, we fit fertility and mortality rat
    \begin{subfigure}{0.33\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\DemoDir/dynamic_full/OrigVsFixSSpop.png}
-      \caption{\\ \shortstack{Original vs. Adjusted\\SS Population}}
+      \caption{\\ \shortstack{Original vs. Adjusted\\SS Population Distribution}}
    \end{subfigure}% <-- this "%" symbol is important
    ~ % <-- this "~" symbol is important
    \begin{subfigure}{0.33\textwidth}
@@ -545,7 +545,7 @@ In order to allow for a range of model years, we fit fertility and mortality rat
    \begin{subfigure}{0.33\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\DemoDir/dynamic_full/PopDistPath.png}
-      \caption{\\ \shortstack{Population Distribution\\Over Time}}
+      \caption{\\ \shortstack{Population Distribution\\Along Time Path}}
    \end{subfigure}
 \end{figure}
 
@@ -555,7 +555,7 @@ In order to allow for a range of model years, we fit fertility and mortality rat
 
 \subsection{Dynamic Demographics}
 
-The following sections discuss calibration and estimation for a parametric method to forecast fertility, mortality, immigration, and population.
+The following sections discuss calibration and estimation for a parametric method to forecast fertility rates, mortality rates, immigration rates, and population.
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \subsubsection{Appendix - Demographics - Fertility Rates}
@@ -576,7 +576,7 @@ The fit of the model in selected years can be seen in \autoref{fig:\thesubsubsec
 
 \begin{figure}[!ht]
    \centering
-   \caption{\label{fig:\thesubsubsection1}Fertility estimated by generalized beta 2}
+   \caption{\label{fig:\thesubsubsection1}Fertility Estimated by Generalized Beta 2}
    \scalebox{0.9}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -601,7 +601,7 @@ where \(L\) represents the maximum value of the curve, \(k\) represents the stee
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection2}Fertility estimated generalized beta 2 parameter estimates}
+   \caption{\label{fig:\thesubsubsection2}Fertility Generalized Beta 2 Parameter Estimates}
    \scalebox{0.9}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -628,7 +628,7 @@ The fourth panel gives us an indication of how fertility will evolve over time. 
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection3}Fertility estimated generalized beta 2 model fit}
+   \caption{\label{fig:\thesubsubsection3}Fertility Generalized Beta 2 Model Fit}
    \scalebox{1}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -660,11 +660,11 @@ The fit of the model can be seen in \autoref{fig:\thesubsubsection1}. Because of
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection1}Infant mortality estimated by polynomial}
+   \caption{\label{fig:\thesubsubsection1}Infant Mortality Estimated by Polynomial}
    \scalebox{0.9}{
       \begin{threeparttable}
          \begin{tabular}{c}
-            \includegraphics[width=0.50\textwidth]{\FigureDir/mortality/smooth_0/_infant mortality_predicted.png}
+            \includegraphics[width=0.50\textwidth]{\FigureDir/mortality/smooth_0/_infant_mortality_rate_predicted.png}
          \end{tabular}
       \end{threeparttable}
    }
@@ -681,7 +681,7 @@ Parameter estimates and their fit over time can be seen in \autoref{fig:\thesubs
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection2}Mortality estimated by generalized beta 2}
+   \caption{\label{fig:\thesubsubsection2}Mortality Estimated by Generalized Beta 2}
    \scalebox{0.61}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -696,7 +696,7 @@ Parameter estimates and their fit over time can be seen in \autoref{fig:\thesubs
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection3}Mortality estimated generalized beta 2 parameter estimates}
+   \caption{\label{fig:\thesubsubsection3}Mortality Generalized Beta 2 Parameter Estimates}
    \scalebox{0.61}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -723,7 +723,7 @@ The fourth panel gives us an indication of how mortality will evolve over time. 
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection4}Mortality estimated generalized beta 2 model fit}
+   \caption{\label{fig:\thesubsubsection4}Mortality Generalized Beta 2 Model Fit}
    \scalebox{1}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -791,7 +791,7 @@ The fit of the model for selected ages can be seen in \autoref{fig:\thesubsubsec
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection1}Immigration estimated by linear regression and forecasted by exponential}
+   \caption{\label{fig:\thesubsubsection1}Immigration Estimated by Linear Regression and Forecasted by Exponential}
    \scalebox{0.9}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -813,7 +813,7 @@ The fourth panel gives us an indication of how immigration will evolve over time
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection2}Immigration estimated by linear regression and forecasted by exponential}
+   \caption{\label{fig:\thesubsubsection2}Immigration Estimated by Linear Regression and Forecasted by Exponential}
    \scalebox{1}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -838,7 +838,7 @@ We will first analyze quality of fit on past data. I test by beginning with 1970
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection1}Estimated population}
+   \caption{\label{fig:\thesubsubsection1}Forecasted vs. True Population}
    \scalebox{1}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -858,7 +858,7 @@ The second panel shows the distribution of the population at select years in the
 
 \begin{figure}[H]
    \centering
-   \caption{\label{fig:\thesubsubsection2}Forecasted population}
+   \caption{\label{fig:\thesubsubsection2}Forecasted Population and Population Distribution}
    \scalebox{1}{
       \begin{threeparttable}
          \begin{tabular}{cc}
@@ -942,7 +942,7 @@ The second panel shows the distribution of the population at select years in the
 \subsubsection{Time Path Results}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Bequests}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Total Bequests \(\hat{BQ}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_BQ_path.png}
@@ -969,7 +969,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Savings}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Individual Savings \(b_{s,t}\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_bs_path.png}
@@ -996,7 +996,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Consumption}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Consumption \(\hat{C}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_C_path.png}
@@ -1023,7 +1023,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Individual Consumption}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Individual Consumption \(\hat{c}_{s,t}\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_cs_path.png}
@@ -1050,7 +1050,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Investment}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Investment \(\hat{I}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_I_path.png}
@@ -1077,7 +1077,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Capital}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Capital \(\hat{K}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_K_path.png}
@@ -1104,7 +1104,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Labor}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Labor Supply \(\hat{L}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_L_path.png}
@@ -1131,7 +1131,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Individual Labor}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Individual Labor Supply \(n_{s,t}\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_ns_path.png}
@@ -1158,7 +1158,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Net Exports}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Net Exports \(\hat{NX}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_NX_path.png}
@@ -1185,7 +1185,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Interest Rates}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Interest Rate \(r_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_r_path.png}
@@ -1212,7 +1212,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Wages}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Wage \(\hat{w}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_w_path.png}
@@ -1239,7 +1239,7 @@ The second panel shows the distribution of the population at select years in the
 \end{figure}
 
 \begin{figure}[H]
-   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Output}
+   \caption{\label{fig:\thesubsubsection1}Time Path of Aggregate Output \(\hat{Y}_t\)}
    \begin{subfigure}{0.5\textwidth}
       \centering
       \includegraphics[width=\textwidth]{\TPDir/static/images/TP_Y_path.png}

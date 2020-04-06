@@ -312,10 +312,11 @@ def ss_graphs(c_ss, n_ss, b_ss, p):
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
     # plt.title('Steady-state consumption and savings', fontsize=20)
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r'Units of consumption')
+    plt.ylabel(r'Units of Consumption')
     plt.xlim((p.E, p.E + p.S + 2))
     # plt.ylim((-1.0, 1.15 * (b_ss.max())))
     plt.legend(loc='upper left')
+    plt.tight_layout()
     output_path = os.path.join(image_dir, 'SS_bc')
     plt.savefig(output_path)
     # plt.show()
@@ -323,7 +324,7 @@ def ss_graphs(c_ss, n_ss, b_ss, p):
 
     # Plot steady-state labor supply distributions
     fig, ax = plt.subplots()
-    plt.plot(age_pers_c, n_ss, marker='D', label='Labor supply')
+    plt.plot(age_pers_c, n_ss, marker='D', label='Labor Supply')
     # for the minor ticks, use no labels; default NullFormatter
     minorLocator = MultipleLocator(1)
     ax.xaxis.set_minor_locator(minorLocator)
@@ -334,6 +335,7 @@ def ss_graphs(c_ss, n_ss, b_ss, p):
     plt.xlim((p.E, p.E + p.S + 1))
     # plt.ylim((-0.1, 1.15 * (n_ss.max())))
     plt.legend(loc='upper right')
+    plt.tight_layout()
     output_path = os.path.join(image_dir, 'SS_n')
     plt.savefig(output_path)
     # plt.show()

@@ -121,19 +121,20 @@ def get_fert(totpers, min_age, max_age, year, country, graph=False):
     #### AGE BIN CREATION
     # Calculate average fertility rate in each age bin using trapezoid
     # method with a large number of points in each bin.
-    binsize = (max_age - min_age + 1) / totpers
+    num_bins = max_age - min_age + 1
+    binsize = num_bins / totpers
     num_sub_bins = float(10000)
-    len_subbins = (np.float64(100 * num_sub_bins)) / totpers
+    len_subbins = (np.float64(num_bins * num_sub_bins)) / totpers
     age_sub = (np.linspace(np.float64(binsize) / num_sub_bins + np.float64(min_age),
                            np.float64(max_age),
-                           int(num_sub_bins * max_age)) - 0.5 *
+                           int(num_sub_bins * (num_bins - 1))) - 0.5 *
                np.float64(binsize) / num_sub_bins)
 
     ### POPULATION CREATION
-    ages = np.linspace(min_age, max_age, curr_pop_pct.shape[0])
+    ages = np.linspace(max(min_age, 0), min(max_age, 99), curr_pop_pct.shape[0])
     pop_func = si.splrep(ages, curr_pop_pct)
-    new_bins = np.linspace(min_age, max_age,\
-                            int(num_sub_bins) * max_age)
+    new_bins = np.linspace(max(min_age, 0), min(max_age, 99),\
+                            int(num_sub_bins * (num_bins - 1)), dtype=float)
     curr_pop_sub = si.splev(new_bins, pop_func)
     curr_pop_sub = curr_pop_sub / curr_pop_sub.sum()
     fert_rates_sub = np.zeros(curr_pop_sub.shape)
@@ -142,11 +143,12 @@ def get_fert(totpers, min_age, max_age, year, country, graph=False):
     fert_rates_sub[pred_ind] = np.float64(si.splev(age_pred, fert_func))
     fert_rates_sub[fert_rates_sub < 0] = 0
     fert_rates = np.zeros(totpers)
-    end_sub_bin = 0
 
     for i in range(totpers):
-        beg_sub_bin = int(end_sub_bin)
+        beg_sub_bin = int(np.rint(i * len_subbins))
         end_sub_bin = int(np.rint((i + 1) * len_subbins))
+        if i == totpers - 1:
+            end_sub_bin += 1
         fert_rates[i] = ((
             curr_pop_sub[beg_sub_bin:end_sub_bin] *
             fert_rates_sub[beg_sub_bin:end_sub_bin]).sum() /
@@ -156,7 +158,6 @@ def get_fert(totpers, min_age, max_age, year, country, graph=False):
     if graph:
         pp.plot_fert_rates(fert_func, birth_ages, totpers, min_age, max_age,
                            pred_fert, fert_rates, output_dir=OUTPUT_DIR)
-
     return fert_rates
 
 
@@ -196,26 +197,23 @@ def get_mort(totpers, min_age, max_age, year, country, graph=False):
     pred_mort = util.forecast(mort_params, year, mort_ages, datatype='mortality', options=False)
 
     infmort_rate = pred_mort[0]
-    age_year_all = mort_ages #np.linspace(min_age, max_age, max_age - min_age + 1)
 
     # Calculate implied mortality rates in sub-bins of pred_mort.
-    #mort_rates_mxyr = pred_mort[0:max_age + 1]
     num_bins = max_age - min_age + 1
     num_sub_bins = int(100)
-    len_subbins = ((np.float64(num_bins * num_sub_bins)) /
-                   totpers)
+    len_subbins = ((np.float64(num_bins * num_sub_bins)) / totpers)
 
     # Mortality rates by sub-bin implied by mort_rates_mxyr
     mort_func = si.splrep(mort_ages, pred_mort)
-    new_bins = np.linspace(min_age, max_age,\
-                            num_bins * num_sub_bins, dtype=float)
+    new_bins = np.linspace(max(min_age, 0), min(max_age, 99),\
+                            int(num_sub_bins * num_bins), dtype=float)
     mort_rates_sub_orig = 1 - si.splev(new_bins, mort_func)
     mort_rates_sub_orig[mort_rates_sub_orig > 1] = 1
     mort_rates_sub_orig[mort_rates_sub_orig < 0] = 0
 
     mort_rates_sub = np.zeros(mort_rates_sub_orig.shape, dtype=float)
 
-    for i in range(num_bins):
+    for i in range(max_age - min_age):
         beg_sub_bin = int(np.rint(i * num_sub_bins))
         end_sub_bin = int(np.rint((i + 1) * num_sub_bins))
         tot_period_surv = (np.log(mort_rates_sub_orig[beg_sub_bin:end_sub_bin]) ).sum()
@@ -230,12 +228,14 @@ def get_mort(totpers, min_age, max_age, year, country, graph=False):
     for i in range(totpers):
         beg_sub_bin = int(np.rint(i * len_subbins))
         end_sub_bin = int(np.rint((i + 1) * len_subbins))
+        if i == totpers - 1:
+            end_sub_bin += 1
         mort_rates[i] = 1 - mort_rates_sub[beg_sub_bin:end_sub_bin].prod()
     mort_rates[-1] = 1  # Mortality rate in last period is set to 1
 
     if graph:
-        pp.plot_mort_rates_data(totpers, min_age, max_age, age_year_all[min_age:max_age + 1],
-                                pred_mort[min_age:max_age + 1], infmort_rate,
+        pp.plot_mort_rates_data(totpers, min_age, max_age, mort_ages[max(min_age, 0):min(max_age + 1, 100)],
+                                pred_mort[max(min_age, 0):min(max_age + 1, 100)], infmort_rate,
                                 mort_rates, output_dir=OUTPUT_DIR)
 
     return mort_rates, 0 # infmort_rate
@@ -366,8 +366,8 @@ def get_pop_objs_static(E, S, T, min_age, max_age, curr_year, country='Japan', G
     pop_yr_rebin = pop_rebin(pop_yr_data, E + S)
     pop_prev_data = forecast_pop(country, stable_year - 1)[stable_year - 1]
     pop_prev_rebin = pop_rebin(pop_prev_data, E + S)
-    fert_rates = get_fert(E + S, min_age, max_age, stable_year - 1, country, graph=False)
-    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, stable_year - 1, country, graph=False)
+    fert_rates = get_fert(E + S, min_age, max_age, stable_year - 1, country, graph=True)
+    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, stable_year - 1, country, graph=True)
     mort_rates_S = mort_rates[-S:]
     imm_rates_orig = util.calc_imm_resid(fert_rates, mort_rates, pop_prev_rebin, pop_yr_rebin)
     OMEGA_orig = np.zeros((E + S, E + S))

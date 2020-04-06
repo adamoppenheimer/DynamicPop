@@ -33,7 +33,11 @@ for year in years:
     prev_pop = util.predict_population(pred_fert, pred_mort, pred_imm, prev_pop)
     plt.plot(ages, prev_pop, label='Predicted')
     plt.plot(ages, pop_data[year], label='True ' + str(year))
-    plt.legend()
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Population $\omega_{s,t}$')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
+    plt.legend(loc='upper right')
     plt.savefig('graphs/' + datatype + '/' + 'start_' + str(start - 1) + '/' + str(year))
     plt.close()
 
@@ -60,18 +64,19 @@ for i in range(2):
         if year in (2020, 2050, 2070, 2100, 2250, 2500):
             plt.plot(ages, prev_pop, label=str(year))
 
-    plt.legend()
-    plt.xlabel('Age $s$')
-    plt.ylabel('Population')
-    plt.grid()
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Population $\omega_{s,t}$')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
+    plt.legend(loc='upper left')
     axes = plt.gca()
     axes.set_xlim([0,100])
     if i == 0:
-        plt.title('Basic population transition')
+        plt.title('Partial-Dynamic Population Transition')
         plt.tight_layout()
         plt.savefig('graphs/' + datatype + '/' + 'start_' + str(future_start - 1) + '/predicted_basic')
     elif i == 1:
-        plt.title('Parametric model population transition')
+        plt.title('Full-Dynamic Population Transition')
         plt.tight_layout()
         plt.savefig('graphs/' + datatype + '/' + 'start_' + str(future_start - 1) + '/predicted_parametric')
     plt.close()
@@ -96,27 +101,28 @@ for i in range(2):
         prev_pop = util.predict_population(pred_fert, pred_mort, pred_imm, prev_pop)
         if year in (2018, 2024, 2058, 2098, 3000):
             if year in (2018, 2024):
-                lab = str(year) + ' pop.'
+                lab = str(year) + ' Pop.'
             elif year == 2058:
-                lab = 'T=40 pop.'
+                lab = 'T=40 Pop.'
             elif year == 2098:
-                lab = 'T=80 pop.'
+                lab = 'T=80 Pop.'
             elif year == 3000:
-                lab = 'Adj. SS pop.'
+                lab = 'SS Pop.'
             plt.plot(ages, prev_pop / np.sum(prev_pop), label=lab)
 
-    plt.legend()
-    plt.xlabel('Age $s$')
-    plt.ylabel(r"Pop. dist'n $\omega_s$")
-    plt.grid()
+    plt.legend(loc='upper left')
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r"Pop. Dist'n $\omega_{s,t}$")
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     axes = plt.gca()
     axes.set_xlim([0,100])
     if i == 0:
-        plt.title('Basic population distribution transition')
+        plt.title('Partial-Dynamic Population Transition')
         plt.tight_layout()
         plt.savefig('graphs/' + datatype + '/' + 'start_' + str(future_start - 1) + '/predicted_proportion_basic')
     elif i == 1:
-        plt.title('Parametric model population distribution transition')
+        plt.title('Full-Dynamic Population Transition')
         plt.tight_layout()
         plt.savefig('graphs/' + datatype + '/' + 'start_' + str(future_start - 1) + '/predicted_proportion_parametric')
     plt.close()

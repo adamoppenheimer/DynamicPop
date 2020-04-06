@@ -25,7 +25,7 @@ c_0 = -0.8
 d_0 = 0
 years = np.array(infant_mort.index)
 
-infant_params = util.poly_est(infant_mort, a_0, b_0, c_0, d_0, e_0, years, smooth, datatype='mortality', param='Infant Mortality', pop=infant_pop)
+infant_params = util.poly_est(infant_mort, a_0, b_0, c_0, d_0, e_0, years, smooth, datatype='mortality', param='Infant Mortality Rate', pop=infant_pop)
 
 ####################################
 ##### Fit Non-Infant Mortality #####

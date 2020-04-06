@@ -29,8 +29,8 @@ def plot_imm_rates(p, year=2019, include_title=False, path=None):
     plt.scatter(age_per, p.imm_rates[year - p.start_year, :], s=40,
                 marker='d')
     plt.plot(age_per, p.imm_rates[year - p.start_year, :])
-    plt.xlabel(r'Age $s$ (model periods)')
-    plt.ylabel(r'Imm. rate $i_{s}$')
+    plt.xlabel(r'Age $s$ (Model Periods)')
+    plt.ylabel(r'Immmigration Rate $i_{s}$')
     vals = ax.get_yticks()
     ax.set_yticklabels(['{:,.2%}'.format(x) for x in vals])
     if include_title:
@@ -58,8 +58,8 @@ def plot_mort_rates(p, include_title=False, path=None):
     age_per = np.linspace(p.E, p.E + p.S, p.S)
     fig, ax = plt.subplots()
     plt.plot(age_per, p.rho)
-    plt.xlabel(r'Age $s$ (model periods)')
-    plt.ylabel(r'Mortality Rates $\rho_{s}$')
+    plt.xlabel(r'Age $s$ (Model Periods)')
+    plt.ylabel(r'Mortality Rate $\rho_{s}$')
     vals = ax.get_yticks()
     ax.set_yticklabels(['{:,.0%}'.format(x) for x in vals])
     if include_title:
@@ -136,7 +136,7 @@ def plot_population(p, years_to_plot=['SS'], include_title=False,
             pop_dist = p.omega[v - p.start_year, :]
         plt.plot(age_vec, pop_dist, label=str(v) + ' pop.')
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r"Pop. dist'n $\omega_{s}$")
+    plt.ylabel(r"Pop. Dist'n $\omega_{s}$")
     plt.legend(loc='lower left')
     if include_title:
         plt.title('Population Distribution by Year')
@@ -223,7 +223,7 @@ def plot_chi_n(p, include_title=False, path=None):
         plt.savefig(fig_path)
 
 
-def plot_fert_rates(fert_func, age_midp, totpers, min_yr, max_yr,
+def plot_fert_rates(fert_func, age_midp, totpers, min_age, max_age,
                     fert_data, fert_rates, output_dir=None):
     '''
     Plot fertility rates from the data along with smoothed function to
@@ -235,8 +235,8 @@ def plot_fert_rates(fert_func, age_midp, totpers, min_yr, max_yr,
         age_midp (NumPy array): midpoint of age for each age group in
             data
         totpers (int): total number of agent life periods (E+S), >= 3
-        min_yr (int): age in years at which agents are born, >= 0
-        max_yr (int): age in years at which agents die with certainty,
+        min_age (int): age in years at which agents are born, >= 0
+        max_age (int): age in years at which agents die with certainty,
             >= 4
         fert_data (NumPy array): fertility rates by age group from data
         fert_rates (NumPy array): fitted fertility rates for each of
@@ -250,22 +250,22 @@ def plot_fert_rates(fert_func, age_midp, totpers, min_yr, max_yr,
     # graphing cubic spline interpolating function
     age_fine_pred = np.linspace(age_midp[0], age_midp[-1], 300)
     fert_fine_pred = np.float64(si.splev(age_fine_pred, fert_func))
-    age_fine = np.hstack((min_yr, age_fine_pred, max_yr))
+    age_fine = np.hstack((min_age, age_fine_pred, max_age))
     fert_fine = np.hstack((0, fert_fine_pred, 0))
-    age_mid_new = (np.linspace(np.float(max_yr) / totpers + min_yr, max_yr,
-                               totpers) - (0.5 * np.float(max_yr) /
+    age_mid_new = (np.linspace(np.float(max_age) / totpers, max_age,
+                               totpers) - (0.5 * np.float(max_age) /
                                            totpers))
 
     fig, ax = plt.subplots()
     plt.scatter(age_midp, fert_data, s=70, c='blue', marker='o',
                 label='Data')
     plt.scatter(age_mid_new, fert_rates, s=40, c='red', marker='d',
-                label='Model period (integrated)')
+                label='Model Period (Integrated)')
     plt.plot(age_fine, fert_fine, label='Cubic spline')
     # plt.title('Fitted fertility rate function by age ($f_{s}$)',
     #     fontsize=20)
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r'Fertility rate $f_{s}$')
+    plt.ylabel(r'Fertility Rate $f_{s}$')
     plt.legend(loc='upper right')
     plt.text(-5, -0.04,
              'Source: Human  Fertility  Collection, 2018.', fontsize=9)
@@ -305,22 +305,20 @@ def plot_mort_rates_data(totpers, min_yr, max_yr, age_year_all,
                                totpers) - (0.5 * np.float(max_yr) /
                                            totpers))
     fig, ax = plt.subplots()
-    plt.scatter(np.hstack([0, age_year_all]),
-                np.hstack([infmort_rate, mort_rates_all]),
+    plt.scatter(age_year_all,
+                mort_rates_all,
                 s=20, c='blue', marker='o', label='Data')
-    plt.scatter(np.hstack([0, age_mid_new]),
-                np.hstack([infmort_rate, mort_rates]),
+    plt.scatter(age_mid_new,
+                mort_rates,
                 s=40, c='red', marker='d',
-                label='Model period (cumulative)')
-    plt.plot(np.hstack([0, age_year_all[min_yr - 1:max_yr]]),
-             np.hstack([infmort_rate,
-                        mort_rates_all[min_yr - 1:max_yr]]))
+                label='Model Period (Cumulative)')
+    plt.plot(age_year_all[min_yr - 1:max_yr], mort_rates_all[min_yr - 1:max_yr])
     plt.axvline(x=max_yr, color='red', linestyle='-', linewidth=1)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
     # plt.title('Fitted mortality rate function by age ($rho_{s}$)',
     #     fontsize=20)
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r'Mortality rate $\rho_{s}$')
+    plt.ylabel(r'Mortality Rate $\rho_{s}$')
     plt.legend(loc='upper left')
     plt.text(-5, -0.24,
              'Source: Japanese  Mortality  Database, 2018.', fontsize=9)
@@ -352,11 +350,12 @@ def plot_omega_fixed(age_per_EpS, omega_SS_orig, omega_SSfx, E, S,
     fig, ax = plt.subplots()
     plt.plot(age_per_EpS, omega_SS_orig, label="Original Dist'n")
     plt.plot(age_per_EpS, omega_SSfx, label="Fixed Dist'n")
-    plt.title('Original steady-state population distribution vs. fixed')
+    # plt.title('Original steady-state population distribution vs. fixed')
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r"Pop. dist'n $\omega_{s}$")
+    plt.ylabel(r"Pop. Dist'n $\omega_{s,t}$")
     plt.xlim((0, E + S + 1))
-    plt.legend(loc='upper right')
+    plt.legend(loc='lower center')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
     # Save or return figure
     if output_dir:
         output_dir, demo_type = output_dir
@@ -384,13 +383,14 @@ def plot_imm_fixed(age_per_EpS, imm_rates_orig, imm_rates_adj, E, S,
 
     '''
     fig, ax = plt.subplots()
-    plt.plot(age_per_EpS, imm_rates_orig, label='Original Imm. Rates')
-    plt.plot(age_per_EpS, imm_rates_adj, label='Adj. Imm. Rates')
-    plt.title('Original immigration rates vs. adjusted')
+    plt.plot(age_per_EpS, imm_rates_orig, label='Original Immigration Rate')
+    plt.plot(age_per_EpS, imm_rates_adj, label='Adj. Immigration Rate')
+    #plt.title('Original immigration rates vs. adjusted')
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r'Imm. rates $i_{s}$')
+    plt.ylabel(r'Immigration Rate $i_{s,t}$')
     plt.xlim((0, E + S + 1))
-    plt.legend(loc='upper center')
+    plt.legend(loc='lower center')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
     # Save or return figure
     if output_dir:
         output_dir, demo_type = output_dir
@@ -404,7 +404,7 @@ def plot_imm_fixed(age_per_EpS, imm_rates_orig, imm_rates_adj, E, S,
         return fig
 
 
-def plot_population_path(age_per_EpS, pop_2013_pct, omega_path_lev,
+def plot_population_path(age_per_EpS, pop_2019_pct, omega_path_lev,
                          omega_SSfx, curr_year, E, S, output_dir=None):
     '''
     Plot the distribution of the population over age for various years.
@@ -415,21 +415,22 @@ def plot_population_path(age_per_EpS, pop_2013_pct, omega_path_lev,
 
     '''
     fig, ax = plt.subplots()
-    plt.plot(age_per_EpS, pop_2013_pct, label='2013 pop.')
-    plt.plot(age_per_EpS, (omega_path_lev[:, 0] /
-                           omega_path_lev[:, 0].sum()),
-             label=str(curr_year) + ' pop.')
+    plt.plot(age_per_EpS, pop_2019_pct, label='2019 Pop.')
+    plt.plot(age_per_EpS, (omega_path_lev[:, 10] /
+                           omega_path_lev[:, 10].sum()),
+             label=str(curr_year + 10) + ' Pop.')
     plt.plot(age_per_EpS, (omega_path_lev[:, int(0.5 * S)] /
                            omega_path_lev[:, int(0.5 * S)].sum()),
-             label='T=' + str(int(0.5 * S)) + ' pop.')
+             label='T=' + str(int(0.5 * S)) + ' Pop.')
     plt.plot(age_per_EpS, (omega_path_lev[:, int(S)] /
                            omega_path_lev[:, int(S)].sum()),
-             label='T=' + str(int(S)) + ' pop.')
-    plt.plot(age_per_EpS, omega_SSfx, label='Adj. SS pop.')
-    plt.title('Population distribution at points in time path')
+             label='T=' + str(int(S)) + ' Pop.')
+    plt.plot(age_per_EpS, omega_SSfx, label='Adj. SS Pop.')
+    #plt.title('Population distribution at points in time path')
     plt.xlabel(r'Age $s$')
-    plt.ylabel(r"Pop. dist'n $\omega_{s}$")
-    plt.legend(loc='lower left')
+    plt.ylabel(r"Pop. Dist'n $\omega_{s,t}$")
+    plt.legend(loc='lower center')
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
     plt.tight_layout()
     # Save or return figure
     if output_dir:
