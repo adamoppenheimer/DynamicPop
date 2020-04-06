@@ -93,14 +93,15 @@ def predict_population(fert_rate, mort_rate, imm_rate, pop_data):
     else:
         births = fert_rate * pop_data[14:51] / 2
     births = np.sum(births)
-    # Second, calculate deaths
-    deaths = mort_rate * pop_data
-    deaths = np.roll(deaths, 1)
+    # Second, calculate survivors
+    survivors = (1 - mort_rate) * pop_data
+    survivors = np.roll(survivors, 1)
+    # Third, correct births
+    survivors[0] = births
     # Third, calculate immigration
     imm = imm_rate * pop_data
     # Fourth, calculate predicted population
-    pred_pop = np.roll(pop_data, 1) - deaths + imm
-    pred_pop[0] = births
+    pred_pop = survivors + imm
 
     return pred_pop
 

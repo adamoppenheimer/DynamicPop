@@ -78,7 +78,7 @@ def forecast_pop(country, start_yr, end_yr=False):
         new_pop = util.predict_population(pred_fert, pred_mort, pred_imm, prev_pop)
         if year >= start_yr:
             forecasted_pop[year] = new_pop
-        prev_pop = new_pop
+        prev_pop = new_pop.copy()
 
     return forecasted_pop
 
@@ -238,7 +238,7 @@ def get_mort(totpers, min_age, max_age, year, country, graph=False):
                                 pred_mort[min_age:max_age + 1], infmort_rate,
                                 mort_rates, output_dir=OUTPUT_DIR)
 
-    return mort_rates, infmort_rate
+    return mort_rates, 0 # infmort_rate
 
 def pop_rebin(curr_pop_dist, totpers_new):
     '''
@@ -886,10 +886,10 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
                 (1, T + S - fixper))
 
     # Population growth rate
-    pop_curr_data = forecast_pop(country, stable_year)[stable_year]
+    pop_curr_data = forecast_pop(country, curr_year)[curr_year]
     pop_curr_samp = pop_curr_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
     pop_curr_rebin = pop_rebin(pop_curr_samp, E + S)
-    pop_next_data = forecast_pop(country, stable_year + 1)[stable_year + 1]
+    pop_next_data = forecast_pop(country, curr_year + 1)[curr_year + 1]
     pop_next_samp = pop_next_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
     pop_next_rebin = pop_rebin(pop_next_samp, E + S)
     
@@ -906,13 +906,13 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
     #     np.tile(np.reshape(imm_rates_adj[E:], (S, 1)), (1, T + S - fixper))))
     
     # Generate time path of immigration rates
-    pop_data = forecast_pop(country, curr_year, curr_year + T + S - 1)
+    pop_data = forecast_pop(country, curr_year - 1, curr_year + T + S - 1)
     imm_rates_mat = np.zeros((S, T + S))
     for per in range(T + S):
         if per <= fixper:
             pop_per = pop_data[curr_year + per]
             pop_per_rebin = pop_rebin(pop_per, E + S)
-            pop_prev_per_data = forecast_pop(country, curr_year + per - 1)[curr_year + per - 1]
+            pop_prev_per_data = pop_data[curr_year + per - 1]
             pop_prev_per_data_rebin = pop_rebin(pop_prev_per_data, E + S)
             fert_rates_per = get_fert(E + S, min_age, max_age, curr_year + per - 1, country, graph=False)
             mort_rates_per, infmort_rate = get_mort(E + S, min_age, max_age, curr_year + per - 1, country, graph=False)
