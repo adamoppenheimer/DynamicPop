@@ -353,9 +353,10 @@ def plot_omega_fixed(age_per_EpS, omega_SS_orig, omega_SSfx, E, S,
     # plt.title('Original steady-state population distribution vs. fixed')
     plt.xlabel(r'Age $s$')
     plt.ylabel(r"Pop. Dist'n $\omega_{s,t}$")
-    plt.xlim((0, E + S + 1))
+    plt.xlim((age_per_EpS[0] - 1, E + S + 1))
     plt.legend(loc='lower center')
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     # Save or return figure
     if output_dir:
         output_dir, demo_type = output_dir
@@ -388,9 +389,10 @@ def plot_imm_fixed(age_per_EpS, imm_rates_orig, imm_rates_adj, E, S,
     #plt.title('Original immigration rates vs. adjusted')
     plt.xlabel(r'Age $s$')
     plt.ylabel(r'Immigration Rate $i_{s,t}$')
-    plt.xlim((0, E + S + 1))
+    plt.xlim((age_per_EpS[0] - 1, E + S + 1))
     plt.legend(loc='lower center')
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    plt.tight_layout()
     # Save or return figure
     if output_dir:
         output_dir, demo_type = output_dir
@@ -429,6 +431,7 @@ def plot_population_path(age_per_EpS, pop_2019_pct, omega_path_lev,
     #plt.title('Population distribution at points in time path')
     plt.xlabel(r'Age $s$')
     plt.ylabel(r"Pop. Dist'n $\omega_{s,t}$")
+    plt.xlim((age_per_EpS[0] - 1, E + S + 1))
     plt.legend(loc='lower center')
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
     plt.tight_layout()

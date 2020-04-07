@@ -644,8 +644,9 @@ def get_cnb_vecs(nb_guess, b_init, r, w, BQ, rho_st, diff, p, toler):
     '''
     rp = r.shape[0]
     nb_args = (b_init, r, w, BQ, rho_st, diff, p)
+    # AO change: added maxiter = 1e6
     results_nb = opt.root(get_nb_errors, nb_guess, args=nb_args,
-                          method='lm', tol=toler)
+                          method='lm', tol=toler, options={'maxiter': int(1e6)})
     # print(results_nb)
     if not results_nb.success:
         print(nb_guess)
