@@ -199,8 +199,10 @@ def get_SS(rBQ_init, p, graphs=False):
     bvec_guess = 0.1 * np.ones(p.S)
     nb_guess = np.append(nvec_guess, bvec_guess)
     rBQ_args = (nb_guess, p)
+    # AO change: changed method to 'lm' from default
+    # AO change: added maxiter = 1e6
     results_rBQ = opt.root(rBQ_errors, rBQ_init, args=rBQ_args,
-                           tol=p.SS_OutTol)
+                           method='lm', tol=p.SS_OutTol, options={'maxiter': int(1e6)})
     if not results_rBQ.success:
         err_msg = ('SS Error: Steady-state root finder did not ' +
                    'solve. results_rBQ.success=False')
