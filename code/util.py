@@ -91,7 +91,8 @@ def predict_population(fert_rate, mort_rate, imm_rate, pop_data):
     if len(fert_rate) == 100:
         births = fert_rate * pop_data / 2
     else:
-        births = fert_rate * pop_data[14:51] / 2
+        # Births from 14-50, but age start at 0
+        births = fert_rate * pop_data[15:52] / 2
     births = np.sum(births)
     # Second, calculate survivors
     survivors = (1 - mort_rate) * pop_data
@@ -115,7 +116,8 @@ def calc_imm_resid(fert_t_minus_1, mort_t_minus_1, pop_t_minus_1, pop_t):
     if len(fert_t_minus_1) == 100:
         births = fert_t_minus_1 * pop_t_minus_1 / 2
     else:
-        births = fert_t_minus_1 * pop_t_minus_1[14:51] / 2
+        # Births from 14-50, but age start at 0
+        births = fert_t_minus_1 * pop_t_minus_1[15:52] / 2
     births = np.sum(births)
     # Second, calculate deaths
     deaths = mort_t_minus_1 * pop_t_minus_1
@@ -349,7 +351,7 @@ def crit_polyvals(params, *args):
         # Weight most recently data more heavily
         diff = np.sum( (xvals[:-10] - guess[:-10]) ** 2) \
                 + np.sum( (1 + (xvals[-10:] - guess[-10:]) ** 2) ** 10)
-    elif datatype == 'mortality' and param == 'Infant Mortality':
+    elif datatype == 'mortality' and param == 'Infant Mortality Rate':
         # Weight most recent data more heavily
         impt_ages = 15
         diff = np.sum( (xvals[:-impt_ages] - guess[:-impt_ages]) ** 2) ** 0.1 \

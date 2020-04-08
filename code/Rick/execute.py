@@ -36,7 +36,7 @@ Import parameters
 ------------------------------------------------------------------------
 '''
 p = params.parameters()
-for demog_type in ['static', 'dynamic_partial', 'dynamic_full']:
+for demog_type in ['static', 'dynamic_partial', 'dynamic_full', 'dynamic_full_alternate']:
     p.set_demog(demog_type)
 
     '''

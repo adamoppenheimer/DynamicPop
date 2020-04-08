@@ -32,7 +32,7 @@ Define functions
 ------------------------------------------------------------------------
 '''
 
-def forecast_pop(country, start_yr, end_yr=False):
+def forecast_pop(country, min_age, max_age, demog_type, start_yr, end_yr=False, demog_files=[False, False, False]):
     '''
     This function uses forecasted fertility, mortality,
     and immigration rates to forecast population for
@@ -40,8 +40,13 @@ def forecast_pop(country, start_yr, end_yr=False):
 
     Args:
         country: country that is source of data
+        min_age (int): age in years at which agents are born, >= 0
+        max_age (int): age in years at which agents die with certainty,
+            >= 4
+        demog_type (str): demography forecasting technique
         start_yr: first year to forecast
         end_yr: last year to forecast. If False, set equal to start_yr
+        demog_files (Pandas dataframe): alternate demographic forecasts
 
     Returns:
         forecasted_pop (Pandas dataframe): population for each year
@@ -49,22 +54,11 @@ def forecast_pop(country, start_yr, end_yr=False):
     if not end_yr:
         end_yr = start_yr
 
-    pop_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', country, 'clean', 'pop.p')
-    fert_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', country, 'parameters', 'fert.p')
-    mort_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', country, 'parameters', 'mort.p')
-    imm_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', country, 'parameters', 'imm.p')
+    fert_all, mort_all, imm_all = demog_files
+
+    pop_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'clean', 'pop.p')
 
     pop_data = pickle.load(open(pop_file, 'rb') )
-    fert_params = pickle.load(open(fert_file, 'rb') )
-    mort_params = pickle.load(open(mort_file, 'rb') )
-    imm_params = pickle.load(open(imm_file, 'rb') )
-
-    ages = np.linspace(0, 99, 100).astype(int)
-    birth_ages = np.linspace(14, 50, 37)
 
     # Access most recent year of population data
     starting_pop = pop_data[max(pop_data.columns)]
@@ -72,12 +66,12 @@ def forecast_pop(country, start_yr, end_yr=False):
     forecasted_pop = pd.DataFrame()
 
     for year in range(max(pop_data.columns) + 1, end_yr + 1):
-        pred_fert = util.forecast(fert_params, year - 1, birth_ages, datatype='fertility', options=False)
-        pred_mort = util.forecast(mort_params, year - 1, ages, datatype='mortality', options=False)
-        pred_imm = util.forecast(imm_params, year, ages, datatype='immigration', options={'transition_year': 2015})
+        pred_fert = forecast_fert(country, year - 1, demog_type, fert_all)
+        pred_mort = forecast_mort(country, year - 1, demog_type, mort_all)
+        pred_imm = forecast_imm(country, year, demog_type, imm_all)
         new_pop = util.predict_population(pred_fert, pred_mort, pred_imm, prev_pop)
         if year >= start_yr:
-            forecasted_pop[year] = new_pop
+            forecasted_pop[year] = new_pop[max(min_age, 0): min(max_age + 1, len(new_pop))]
         prev_pop = new_pop.copy()
 
     if start_yr == end_yr:
@@ -85,7 +79,143 @@ def forecast_pop(country, start_yr, end_yr=False):
 
     return forecasted_pop
 
-def get_fert(totpers, min_age, max_age, year, country, graph=False):
+def forecast_fert(country, year, demog_type, fert_file=False):
+    '''
+    This function returns forecasted fertility for a particular year
+
+    Args:
+        country: country that is source of data
+        year: year to forecast
+        demog_type (str): demography forecasting technique
+        fert_file (Pandas dataframe): alternate forecasting data
+
+    Returns:
+        pred_fert (Numpy array): forecasted fertility
+    '''
+    if demog_type == 'dynamic_full':
+        fert_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'parameters', 'fert.p')
+
+        fert_params = pickle.load(open(fert_file, 'rb') )
+
+        birth_ages = np.linspace(14, 50, 37)
+
+        pred_fert = util.forecast(fert_params, year, birth_ages, datatype='fertility', options=False)
+
+    elif demog_type == 'dynamic_full_alternate':
+        if year > 2050:
+            year = 2050
+        pred_fert = fert_file['rate.total.' + str(year)]
+
+    return pred_fert
+
+def forecast_mort(country, year, demog_type, mort_file=False):
+    '''
+    This function returns forecasted mortality for a particular year
+
+    Args:
+        country: country that is source of data
+        year: year to forecast
+        demog_type (str): demography forecasting technique
+        mort_file (Pandas dataframe): alternate forecasting data
+
+    Returns:
+        pred_mort (Numpy array): forecasted mortality
+    '''
+    if demog_type == 'dynamic_full':
+        mort_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'parameters', 'mort.p')
+
+        mort_params = pickle.load(open(mort_file, 'rb') )
+
+        ages = np.linspace(0, 99, 100).astype(int)
+
+        pred_mort = util.forecast(mort_params, year, ages, datatype='mortality', options=False)
+
+    elif demog_type == 'dynamic_full_alternate':
+        if year > 2050:
+            year = 2050
+        pred_mort = mort_file['rate.total.' + str(year)]
+
+    return pred_mort
+
+def forecast_imm(country, year, demog_type, imm_file=False):
+    '''
+    This function returns forecasted immigration for a particular year
+
+    Args:
+        country: country that is source of data
+        year: year to forecast
+        demog_type (str): demography forecasting technique
+        imm_file (Pandas dataframe): alternate forecasting data
+
+    Returns:
+        pred_imm (Numpy array): forecasted immigration
+    '''
+    if demog_type == 'dynamic_full':
+        imm_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'parameters', 'imm.p')
+
+        imm_params = pickle.load(open(imm_file, 'rb') )
+
+        ages = np.linspace(0, 99, 100).astype(int)
+
+        pred_imm = util.forecast(imm_params, year, ages, datatype='immigration', options={'transition_year': 2015})
+
+    elif demog_type == 'dynamic_full_alternate':
+        if year > 2050:
+            year = 2050
+        pred_imm = imm_file['rate.total.' + str(year)]
+
+    return pred_imm
+
+def prep_demog_alternate(country):
+    '''
+    This function returns the alternate dynamic demographic forecasts
+
+    Args:
+        country: country that is source of data
+
+    Returns:
+        pred_fert (Pandas dataframe): forecasted fertility
+        pred_mort (Pandas dataframe): forecasted mortality
+        pred_imm (Pandas dataframe): forecasted immigration
+    '''
+    fert_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'r_forecasts', 'fert_pred.csv')
+    mort_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'r_forecasts', 'mort_pred.csv')
+    imm_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'r_forecasts', 'imm_pred.csv')
+
+    pred_fert = pd.read_csv(fert_file)
+    pred_mort = pd.read_csv(mort_file)
+    pred_imm = pd.read_csv(imm_file)
+
+    return pred_fert, pred_mort, pred_imm
+
+def get_true_demog_data(country, min_age, max_age):
+    '''
+    This function returns the true demographic
+    data for a country
+    
+    Args:
+        country: country that is source of data
+        min_age (int): age in years at which agents are born, >= 0
+        max_age (int): age in years at which agents die with certainty,
+            >= 4
+
+    Returns:
+        fert_data (Numpy array): fertility rates for each model period of life
+        mort_data (Numpy array): mortality rates for each model period of life
+        imm_data (Numpy array): immigration rates for each model period of life
+        pop_data (Numpy array): population for each model period of life
+    '''
+
+    demog_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'clean', 'all.p')
+
+    pop_data, fert_data, mort_data, imm_data = pickle.load(open(demog_file, 'rb') )
+
+    pop_2014 = pop_data[2014][max(min_age, 0): min(max_age + 1, len(pop_data[2014]))]
+    pop_2015 = pop_data[2015][max(min_age, 0): min(max_age + 1, len(pop_data[2015]))]
+
+    return pop_2014, pop_2015, fert_data[2014], mort_data[2014], imm_data[2015]
+
+def get_fert(totpers, min_age, max_age, year, country, demog_type, graph=False, demog_files=[False, False, False]):
     '''
     This function generates a vector of fertility rates by model period
     age that corresponds to the fertility rate data by age in years
@@ -97,55 +227,52 @@ def get_fert(totpers, min_age, max_age, year, country, graph=False):
             >= 4
         year (int): year of fertility data
         country (str): country that is source of data
+        demog_type (str): demography forecasting technique
         graph (bool): =True if want graphical output
+        demog_files (Pandas dataframe): alternate demographic forecasts
 
     Returns:
-        fert_rates (Numpy array): fertility rates for each model period
-            of life
+        fert_rates (Numpy array): fertility rates for each model period of life
 
     '''
-    # Get population data from year for weighting
-    pop_data = forecast_pop(country, year)
-    pop_data_samp = pop_data.iloc[max(min_age - 1, 0): min(max_age, 100)]
-    curr_pop = np.array(pop_data_samp, dtype='f')
-    curr_pop_pct = curr_pop / curr_pop.sum()
+    fert_all, mort_all, imm_all = demog_files
 
-    # Fertility parameters
-    fert_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', country, 'parameters', 'fert.p')
-    fert_params = pickle.load(open(fert_file, 'rb') )
+    # Get data
+    if demog_type in ['dynamic_full', 'dynamic_full_alternate']:
+        curr_pop = forecast_pop(country, min_age, max_age, demog_type, year, demog_files=demog_files)
+        curr_fert = forecast_fert(country, year, demog_type, fert_file=fert_all)
+    elif demog_type in ['static', 'dynamic_partial']:
+        curr_pop, _, curr_fert, _, _ = get_true_demog_data(country, min_age, max_age)
     # Birth ages
     birth_ages = np.linspace(14, 50, 37)
-    # Predicted fertility data
-    pred_fert = util.forecast(fert_params, year, birth_ages, datatype='fertility', options=False)
-    # Generate interpolation functions for fertility rates
-    fert_func = si.splrep(birth_ages, pred_fert)
+    # Population Distribution
+    curr_pop_pct = curr_pop / curr_pop.sum()
 
     if (min_age == 0) and (max_age == 99) and (totpers == 100) and (not graph):
         fert_rates = np.zeros(totpers)
-        fert_rates[14:51] = pred_fert
+        # Births from 14-50, but age start at 0
+        fert_rates[15:52] = curr_fert
         return fert_rates
 
-    #### AGE BIN CREATION
-    # Calculate average fertility rate in each age bin using trapezoid
-    # method with a large number of points in each bin.
+    ### VARIABLE PREPARATION
     num_bins = max_age - min_age + 1
     binsize = num_bins / totpers
     num_sub_bins = float(10000)
     len_subbins = (np.float64(num_bins * num_sub_bins)) / totpers
-    age_sub = (np.linspace(np.float64(binsize) / num_sub_bins + np.float64(min_age),
-                           np.float64(max_age),
-                           int(num_sub_bins * (num_bins - 1))) - 0.5 *
-               np.float64(binsize) / num_sub_bins)
 
     ### POPULATION CREATION
     ages = np.linspace(max(min_age, 0), min(max_age, 99), curr_pop_pct.shape[0])
     pop_func = si.splrep(ages, curr_pop_pct)
-    new_bins = np.linspace(max(min_age, 0), min(max_age, 99),\
-                            int(num_sub_bins * (num_bins - 1)), dtype=float)
+    new_bins = np.linspace(max(min_age, 0), min(max_age, 99), int(num_sub_bins * (num_bins - 1)), dtype=float)
     curr_pop_sub = si.splev(new_bins, pop_func)
     curr_pop_sub = curr_pop_sub / curr_pop_sub.sum()
+
+    #### AGE BIN CREATION
+    # Calculate implied fertility rates in sub-bins of curr_fert
+    fert_func = si.splrep(birth_ages, curr_fert)
     fert_rates_sub = np.zeros(curr_pop_sub.shape)
+    age_sub = (np.linspace(np.float64(binsize) / num_sub_bins + np.float64(min_age), np.float64(max_age), int(num_sub_bins * (num_bins - 1))) - 0.5 * np.float64(binsize) / num_sub_bins)
+    # Fill in fertility rates
     pred_ind = (age_sub >= birth_ages[0]) * (age_sub <= birth_ages[-1]) # Makes sure it is inside valid range
     age_pred = age_sub[pred_ind] # Gets age_sub in the valid range by applying pred_ind
     fert_rates_sub[pred_ind] = np.float64(si.splev(age_pred, fert_func))
@@ -164,17 +291,17 @@ def get_fert(totpers, min_age, max_age, year, country, graph=False):
     fert_rates = np.nan_to_num(fert_rates)
 
     if graph:
-        pp.plot_fert_rates(fert_func, birth_ages, totpers, min_age, max_age,
-                           pred_fert, fert_rates, output_dir=OUTPUT_DIR)
+        pp.plot_fert_rates(fert_func, birth_ages, totpers, min_age, max_age, curr_fert, fert_rates, output_dir=OUTPUT_DIR)
 
     if (min_age == 0) and (max_age == 99) and (totpers == 100):
         fert_rates = np.zeros(totpers)
-        fert_rates[14:51] = pred_fert
+        # Births from 14-50, but age start at 0
+        fert_rates[15:52] = curr_fert
 
     return fert_rates
 
 
-def get_mort(totpers, min_age, max_age, year, country, graph=False):
+def get_mort(totpers, min_age, max_age, year, country, demog_type, graph=False, mort_file=False):
     '''
     This function generates a vector of mortality rates by model period
     age.
@@ -186,7 +313,9 @@ def get_mort(totpers, min_age, max_age, year, country, graph=False):
             >= 4
         year (int): year of mortality data
         country (str): country that is source of data
+        demog_type (str): demography forecasting technique
         graph (bool): =True if want graphical output
+        demog_files (Pandas dataframe): alternate demographic forecasts
 
     Returns:
         mort_rates (Numpy array): mortality rates that correspond to each
@@ -194,46 +323,44 @@ def get_mort(totpers, min_age, max_age, year, country, graph=False):
         infmort_rate (scalar): infant mortality rate
 
     '''
-    # Get population data from year for weighting
-    pop_data = forecast_pop(country, year)
-    pop_data_samp = pop_data.iloc[max(min_age - 1, 0): min(max_age, 100)]
-    curr_pop = np.array(pop_data_samp, dtype='f')
-    curr_pop_pct = curr_pop / curr_pop.sum()
 
-    # Mortality parameters
-    mort_file = os.path.join(
-        CUR_PATH, 'data', 'demographic', country, 'parameters', 'mort.p')
-    mort_params = pickle.load(open(mort_file, 'rb') )
+    # Get data
+    if demog_type in ['dynamic_full', 'dynamic_full_alternate']:
+        curr_mort = forecast_mort(country, year, demog_type, mort_file=mort_file)
+    elif demog_type in ['static', 'dynamic_partial']:
+        _, _, _, curr_mort, _ = get_true_demog_data(country, min_age, max_age)
     # Mortality ages
     mort_ages = np.linspace(0, 99, 100).astype(int)
-    # Predicted mortality data
-    pred_mort = util.forecast(mort_params, year, mort_ages, datatype='mortality', options=False)
-
-    infmort_rate = pred_mort[0]
+    # Infant Mortality Rate
+    infmort_rate = curr_mort[0]
 
     if (min_age == 0) and (max_age == 99) and (totpers == 100) and (not graph):
-        return pred_mort, 0 # infmort_rate
+        return curr_mort, 0 # infmort_rate
 
-    # Calculate implied mortality rates in sub-bins of pred_mort.
+    ### VARIABLE PREPARATION
     num_bins = max_age - min_age + 1
+    binsize = num_bins / totpers
     num_sub_bins = int(100)
     len_subbins = ((np.float64(num_bins * num_sub_bins)) / totpers)
 
-    # Mortality rates by sub-bin implied by mort_rates_mxyr
-    mort_func = si.splrep(mort_ages, pred_mort)
-    new_bins = np.linspace(max(min_age, 0), min(max_age, 99),\
-                            int(num_sub_bins * num_bins), dtype=float)
-    mort_rates_sub_orig = 1 - si.splev(new_bins, mort_func)
+    #### AGE BIN CREATION
+    # Calculate implied mortality rates in sub-bins of curr_mort
+    mort_func = si.splrep(mort_ages, curr_mort)
+    mort_sub = (np.linspace(np.float64(binsize) / num_sub_bins + np.float64(min_age), np.float64(max_age), int(num_sub_bins * (num_bins - 1))) - 0.5 * np.float64(binsize) / num_sub_bins) # CORRECT TO NUM_BINS NOT -1
+    # Fill in mortality rates
+    mort_rates_sub_orig = 1 - si.splev(mort_sub, mort_func)
     mort_rates_sub_orig[mort_rates_sub_orig > 1] = 1
     mort_rates_sub_orig[mort_rates_sub_orig < 0] = 0
 
     mort_rates_sub = np.zeros(mort_rates_sub_orig.shape, dtype=float)
 
-    for i in range(max_age - min_age):
+    for i in range(totpers):
         beg_sub_bin = int(np.rint(i * num_sub_bins))
         end_sub_bin = int(np.rint((i + 1) * num_sub_bins))
+        if i == totpers - 1:
+            end_sub_bin += 1
         tot_period_surv = (np.log(mort_rates_sub_orig[beg_sub_bin:end_sub_bin]) ).sum()
-        end_surv = np.log(1 - pred_mort[min_age:][i])
+        end_surv = np.log(1 - curr_mort[min_age:][i])
         if tot_period_surv != 0:
             power = end_surv / tot_period_surv
         else:
@@ -251,11 +378,11 @@ def get_mort(totpers, min_age, max_age, year, country, graph=False):
 
     if graph:
         pp.plot_mort_rates_data(totpers, min_age, max_age, mort_ages[max(min_age, 0):min(max_age + 1, 100)],
-                                pred_mort[max(min_age, 0):min(max_age + 1, 100)], infmort_rate,
+                                curr_mort[max(min_age, 0):min(max_age + 1, 100)], infmort_rate,
                                 mort_rates, output_dir=OUTPUT_DIR)
 
     if (min_age == 0) and (max_age == 99) and (totpers == 100):
-        mort_rates = pred_mort
+        mort_rates = curr_mort
 
     return mort_rates, 0 # infmort_rate
 
@@ -374,15 +501,12 @@ def get_pop_objs_static(E, S, T, min_age, max_age, curr_year, country='Japan', G
             g_n_path, imm_rates_mat.T, omega_S_preTP)
 
     '''
-    # Prepare demographics for curr_year
-    pop_yr_data = forecast_pop(country, curr_year)
-    pop_yr_samp = pop_yr_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_yr_rebin = pop_rebin(pop_yr_samp, E + S)
-    pop_prev_data = forecast_pop(country, curr_year - 1)
-    pop_prev_samp = pop_prev_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_prev_rebin = pop_rebin(pop_prev_samp, E + S)
-    fert_rates = get_fert(E + S, min_age, max_age, curr_year - 1, country, graph=True)
-    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, curr_year - 1, country, graph=True)
+    # Prepare demographics with true data
+    pop_prev_data, pop_yr_data, _, _, _ = get_true_demog_data(country, min_age, max_age)
+    pop_prev_rebin = pop_rebin(pop_prev_data, E + S)
+    pop_yr_rebin = pop_rebin(pop_yr_data, E + S)
+    fert_rates = get_fert(E + S, min_age, max_age, curr_year - 1, country, demog_type='static', graph=True)
+    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, curr_year - 1, country, demog_type='static', graph=True)
     mort_rates_S = mort_rates[-S:]
     imm_rates_orig = util.calc_imm_resid(fert_rates, mort_rates, pop_prev_rebin, pop_yr_rebin)
     
@@ -409,9 +533,9 @@ def get_pop_objs_static(E, S, T, min_age, max_age, curr_year, country='Japan', G
 
     # Generate time path of mortality rates
     rho_path_lev = np.zeros((S, T + S + S))
-    mort_per, inf_mort_per = get_mort(E + S, min_age, max_age, curr_year, country, graph=False)
     for per in range(T + S + S):
-        rho_path_lev[:, per] = mort_per[E:].copy()
+        rho_path_lev[:, per] = mort_rates_S.copy()
+    mort_rates_S = np.expand_dims(mort_rates_S, 1)
 
     if GraphDiag:
         # plots
@@ -422,6 +546,7 @@ def get_pop_objs_static(E, S, T, min_age, max_age, curr_year, country='Japan', G
         pp.plot_population_path(ages, omega_SS_orig,
                                 omega_path_lev, omega_SS_orig, curr_year,
                                 E, S, output_dir=(OUTPUT_DIR, 'static'))
+        print('Static diagnostic graphs generated')
 
     # return omega_path_S, g_n_SS, omega_SSfx, survival rates,
     # mort_rates_S, and g_n_path
@@ -437,7 +562,6 @@ def get_pop_objs_static(E, S, T, min_age, max_age, curr_year, country='Japan', G
     print('rho_path_lev.shape:', rho_path_lev.shape) # Should be 80x320
     print('g_n_path.shape:', g_n_path.shape) # Should be size 240 (S*3)
     print('imm_rates_mat.shape:', imm_rates_mat.shape) # Should be 80x240 (Sx3*S)
-    
 
     return (omega_path_S.T, g_n_SS, omega_S_preTP, 1 - mort_rates_S, rho_path_lev.T,
             g_n_path, imm_rates_mat.T, omega_S_preTP)
@@ -479,16 +603,14 @@ def get_pop_objs_dynamic_partial(E, S, T, min_age, max_age, curr_year, country='
 
     '''
     # Prepare demographics for data_year
-    data_year = 2019
-    pop_yr_data = forecast_pop(country, data_year)
-    pop_yr_samp = pop_yr_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_yr_rebin = pop_rebin(pop_yr_samp, E + S)
-    pop_prev_data = forecast_pop(country, data_year - 1)
-    pop_prev_samp = pop_prev_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_prev_rebin = pop_rebin(pop_prev_samp, E + S)
-    fert_rates = get_fert(E + S, min_age, max_age, data_year - 1, country, graph=False)
-    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, data_year - 1, country, graph=False)
+    data_year = 2015
+    pop_prev_data, pop_yr_data, _, _, _ = get_true_demog_data(country, min_age, max_age)
+    pop_prev_rebin = pop_rebin(pop_prev_data, E + S)
+    pop_yr_rebin = pop_rebin(pop_yr_data, E + S)
+    fert_rates = get_fert(E + S, min_age, max_age, curr_year - 1, country, demog_type='dynamic_partial', graph=False)
+    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, curr_year - 1, country, demog_type='dynamic_partial', graph=False)
     mort_rates_S = mort_rates[-S:]
+    mort_rates_S = np.expand_dims(mort_rates_S, 1)
     imm_rates_orig = util.calc_imm_resid(fert_rates, mort_rates, pop_prev_rebin, pop_yr_rebin)
     
     ages = np.arange(min_age, max_age + 1)
@@ -543,7 +665,21 @@ def get_pop_objs_dynamic_partial(E, S, T, min_age, max_age, curr_year, country='
     g_n_path[0] = g_n_curr.copy()
     g_n_path[1:] = ((omega_path_lev[-S:, 1:].sum(axis=0) - omega_path_lev[-S:, :-1].sum(axis=0)) / omega_path_lev[-S:, :-1].sum(axis=0))
     g_n_path[fixper + 1:] = g_n_SS
-    imm_rates_mat = np.hstack((np.tile(np.reshape(np.array(imm_rates_orig)[E:], (S, 1)), (1, fixper)), np.tile(np.reshape(imm_rates_adj[E:], (S, 1)), (1, T + S - fixper))))
+
+    # Generate time path of immigration rates
+    imm_rates_mat = np.zeros((S, T + S))
+    for per in range(T + S):
+        if per <= fixper:
+            imm_rates_mat[:, per] = imm_rates_orig[E:].copy()
+        else:
+            imm_rates_mat[:, per] = imm_rates_adj[E:].copy()
+
+    # imm_rates_mat = np.hstack((np.tile(np.reshape(np.array(imm_rates_orig)[E:], (S, 1)), (1, fixper)), np.tile(np.reshape(imm_rates_adj[E:], (S, 1)), (1, T + S - fixper))))
+
+    # Generate time path of mortality rates
+    rho_path_lev = np.zeros((S, T + S + S))
+    for per in range(T + S + S):
+        rho_path_lev[:, per] = mort_rates[-S:].copy()
 
     if GraphDiag:
         # Check whether original SS population distribution is close to
@@ -640,13 +776,11 @@ def get_pop_objs_dynamic_partial(E, S, T, min_age, max_age, curr_year, country='
                                 omega_path_lev, omega_SSfx, curr_year,
                                 E, S, output_dir=(OUTPUT_DIR, 'dynamic_partial'))
 
-    # return omega_path_S, g_n_SS, omega_SSfx, survival rates,
-    # mort_rates_S, and g_n_path
     return (omega_path_S.T, g_n_SS, omega_SSfx[-S:] /
-            omega_SSfx[-S:].sum(), 1 - mort_rates_S, mort_rates_S,
+            omega_SSfx[-S:].sum(), 1 - mort_rates_S, rho_path_lev.T,
             g_n_path, imm_rates_mat.T, omega_S_preTP)
 
-def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Japan', GraphDiag=True):
+def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, demog_type, country='Japan', GraphDiag=True):
     '''
     This function produces the demographics objects to be used in the
     OG-USA model package.
@@ -662,6 +796,7 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
             >= 4
         curr_year (int): current year for which analysis will begin,
             >= 2020
+        demog_type (str): demography forecasting technique
         country (str): country that is source of data
         GraphDiag (bool): =True if want graphical output and printed
                 diagnostics
@@ -687,24 +822,29 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
             g_n_path, imm_rates_mat.T, omega_S_preTP)
 
     '''
+    # If alternate, forecast all demographics data
+    if demog_type == 'dynamic_full_alternate':
+        fert_all, mort_all, imm_all = prep_demog_alternate(country)
+    else:
+        fert_all, mort_all, imm_all = False, False, False
+    # Forecast all population data
+    pop_data = forecast_pop(country, min_age, max_age, demog_type, curr_year - 1, curr_year + T + S - 1, demog_files=[fert_all, mort_all, imm_all]) # - 1 for Immigration Rates
     # Prepare demographics for stable_year
     stable_year = 2051
-    pop_yr_data = forecast_pop(country, stable_year)
-    pop_yr_samp = pop_yr_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_yr_rebin = pop_rebin(pop_yr_samp, E + S)
-    pop_prev_data = forecast_pop(country, stable_year - 1)
-    pop_prev_samp = pop_prev_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_prev_rebin = pop_rebin(pop_prev_samp, E + S)
-    fert_rates = get_fert(E + S, min_age, max_age, stable_year - 1, country, graph=False)
-    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, stable_year - 1, country, graph=False)
-    mort_rates_S = mort_rates[-S:]
-    imm_rates_orig = util.calc_imm_resid(fert_rates, mort_rates, pop_prev_rebin, pop_yr_rebin)
+    pop_stable_prev_data = pop_data[stable_year - 1]
+    pop_stable_prev_rebin = pop_rebin(pop_stable_prev_data, E + S)
+    pop_stable_data = pop_data[stable_year]
+    pop_stable_rebin = pop_rebin(pop_stable_data, E + S)
+    fert_stable = get_fert(E + S, min_age, max_age, stable_year - 1, country, demog_type=demog_type, graph=False, demog_files=[fert_all, mort_all, imm_all])
+    mort_stable, infmort_stable = get_mort(E + S, min_age, max_age, stable_year - 1, country, demog_type=demog_type, graph=False, mort_file=mort_all)
+    mort_rates_S = mort_stable[-S:]
+    imm_rates_orig = util.calc_imm_resid(fert_stable, mort_stable, pop_stable_prev_rebin, pop_stable_rebin)
 
     ages = np.arange(min_age, max_age + 1)
 
     OMEGA_orig = np.zeros((E + S, E + S))
-    OMEGA_orig[0, :] = fert_rates / 2
-    OMEGA_orig[1:, :-1] += np.diag(1 - mort_rates[:-1])
+    OMEGA_orig[0, :] = fert_stable / 2
+    OMEGA_orig[1:, :-1] += np.diag(1 - mort_stable[:-1])
     OMEGA_orig += np.diag(imm_rates_orig)
 
     # Solve for steady-state population growth rate and steady-state
@@ -716,12 +856,10 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
     omega_SS_orig = eigvec_raw / eigvec_raw.sum()
 
     # Generate time path of nonstationary population
-    pop_data = forecast_pop(country, curr_year - 1, curr_year + T + S - 1) # - 1 for Immigration Rates
     omega_path_lev = np.zeros((E + S, T + S))
     for per in range(T + S):
         pop_per_data = pop_data[curr_year + per]
-        pop_per_samp = pop_per_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-        pop_per_rebin = pop_rebin(pop_per_samp, E + S)
+        pop_per_rebin = pop_rebin(pop_per_data, E + S)
         omega_path_lev[:, per] = pop_per_rebin.copy()
 
     # Force the population distribution after 1.5*S periods from start to be the
@@ -730,7 +868,7 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
     imm_tol = 1e-14
     fixper = int(1.5 * S)
     omega_SSfx = (omega_path_lev[:, fixper] / omega_path_lev[:, fixper].sum())
-    imm_objs = (fert_rates, mort_rates, infmort_rate, omega_path_lev[:, fixper], g_n_SS)
+    imm_objs = (fert_stable, mort_stable, infmort_stable, omega_path_lev[:, fixper], g_n_SS)
     imm_fulloutput = opt.fsolve(immsolve, imm_rates_orig, args=(imm_objs), full_output=True, xtol=imm_tol)
     imm_rates_adj = imm_fulloutput[0]
     imm_diagdict = imm_fulloutput[1]
@@ -738,13 +876,11 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
     omega_path_S[:, fixper:] = np.tile(omega_path_S[:, fixper].reshape((S, 1)), (1, T + S - fixper))
 
     # Population growth rate
+    pop_prev_data = pop_data[curr_year - 1]
+    pop_prev_rebin = pop_rebin(pop_prev_data, E + S)
     pop_curr_data = pop_data[curr_year]
-    pop_curr_samp = pop_curr_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_curr_rebin = pop_rebin(pop_curr_samp, E + S)
-    pop_past_data = pop_data[curr_year - 1]
-    pop_past_samp = pop_past_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-    pop_past_rebin = pop_rebin(pop_past_samp, E + S)
-    g_n_curr = ((pop_curr_rebin[-S:].sum() - pop_past_rebin[-S:].sum()) / pop_past_rebin[-S:].sum())
+    pop_curr_rebin = pop_rebin(pop_curr_data, E + S)
+    g_n_curr = ((pop_curr_rebin[-S:].sum() - pop_prev_rebin[-S:].sum()) / pop_prev_rebin[-S:].sum())
     omega_S_preTP = pop_curr_rebin[-S:] / pop_curr_rebin[-S:].sum()
     omega_S_preTP = np.expand_dims(omega_S_preTP, 1)
     pop_curr_pct = pop_curr_rebin / np.sum(pop_curr_rebin)
@@ -757,15 +893,13 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
     # Generate time path of immigration rates
     imm_rates_mat = np.zeros((S, T + S))
     for per in range(T + S):
-        if per < fixper:
-            pop_per_data = pop_data[curr_year + per]
-            pop_per_samp = pop_per_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-            pop_per_rebin = pop_rebin(pop_per_samp, E + S)
+        if per <= fixper:
             pop_prev_per_data = pop_data[curr_year + per - 1]
-            pop_prev_per_samp = pop_prev_per_data[max(min_age - 1, 0): min(max_age + 1, len(pop_yr_data))]
-            pop_prev_per_rebin = pop_rebin(pop_prev_per_samp, E + S)
-            fert_rates_per = get_fert(E + S, min_age, max_age, curr_year + per - 1, country, graph=False)
-            mort_rates_per, infmort_rate = get_mort(E + S, min_age, max_age, curr_year + per - 1, country, graph=False)
+            pop_prev_per_rebin = pop_rebin(pop_prev_per_data, E + S)
+            pop_per_data = pop_data[curr_year + per]
+            pop_per_rebin = pop_rebin(pop_per_data, E + S)
+            fert_rates_per = get_fert(E + S, min_age, max_age, curr_year + per - 1, country, demog_type=demog_type, graph=False, demog_files=[fert_all, mort_all, imm_all])
+            mort_rates_per, infmort_rate = get_mort(E + S, min_age, max_age, curr_year + per - 1, country, demog_type=demog_type, graph=False, mort_file=mort_all)
             imm_rates_per = util.calc_imm_resid(fert_rates_per, mort_rates_per, pop_prev_per_rebin, pop_per_rebin)
             imm_rates_mat[:, per] = imm_rates_per[E:].copy()
         else:
@@ -774,7 +908,7 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
     # Generate time path of mortality rates
     rho_path_lev = np.zeros((S, T + S + S))
     for per in range(T + S + S):
-        mort_per, inf_mort_per = get_mort(E + S, min_age, max_age, curr_year + per, country, graph=False)
+        mort_per, inf_mort_per = get_mort(E + S, min_age, max_age, curr_year + per, country, demog_type=demog_type, graph=False, mort_file=mort_all)
         rho_path_lev[:, per] = mort_per[E:].copy()
 
     if GraphDiag:
@@ -825,8 +959,8 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
         # adjusted OMEGA matrix equals the steady-state growth rate of
         # the original OMEGA matrix
         OMEGA2 = np.zeros((E + S, E + S))
-        OMEGA2[0, :] = fert_rates / 2
-        OMEGA2[1:, :-1] += np.diag(1 - mort_rates[:-1])
+        OMEGA2[0, :] = fert_stable / 2
+        OMEGA2[1:, :-1] += np.diag(1 - mort_stable[:-1])
         OMEGA2 += np.diag(imm_rates_adj)
         eigvalues2, eigvectors2 = np.linalg.eig(OMEGA2)
         g_n_SS_adj = (eigvalues[np.isreal(eigvalues2)].real).max() - 1
@@ -865,12 +999,12 @@ def get_pop_objs_dynamic_full(E, S, T, min_age, max_age, curr_year, country='Jap
 
         # plots
         pp.plot_omega_fixed(ages, omega_SS_orig, omega_SSfx, E,
-                            S, output_dir=(OUTPUT_DIR, 'dynamic_full'))
+                            S, output_dir=(OUTPUT_DIR, demog_type))
         pp.plot_imm_fixed(ages, imm_rates_orig, imm_rates_adj, E,
-                          S, output_dir=(OUTPUT_DIR, 'dynamic_full'))
+                          S, output_dir=(OUTPUT_DIR, demog_type))
         pp.plot_population_path(ages, pop_curr_pct,
                                 omega_path_lev, omega_SSfx, curr_year,
-                                E, S, output_dir=(OUTPUT_DIR, 'dynamic_full'))
+                                E, S, output_dir=(OUTPUT_DIR, demog_type))
 
     # return omega_path_S, g_n_SS, omega_SSfx, survival rates,
     # mort_rates_S, and g_n_path

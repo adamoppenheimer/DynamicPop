@@ -63,7 +63,7 @@ for age in ages:
     else:
         f = 1 # Keep estimate constant
     a = 1 / 30 * (1e-20 / (f * last_val - g) - b )
-    if age == 0:
+    if age == -1:
         b = - b / 5
     age_params.append([constant, beta, a, b, c, g])
     forecast = e ** (a * forecast_vals ** 2 + b * forecast_vals + c) + g

@@ -417,10 +417,10 @@ def plot_population_path(age_per_EpS, pop_2019_pct, omega_path_lev,
 
     '''
     fig, ax = plt.subplots()
-    plt.plot(age_per_EpS, pop_2019_pct, label='2019 Pop.')
+    plt.plot(age_per_EpS, pop_2019_pct, label=str(curr_year) + ' Pop.')
     plt.plot(age_per_EpS, (omega_path_lev[:, 10] /
                            omega_path_lev[:, 10].sum()),
-             label=str(curr_year + 10) + ' Pop.')
+             label=str(2030) + ' Pop.')
     plt.plot(age_per_EpS, (omega_path_lev[:, int(0.5 * S)] /
                            omega_path_lev[:, int(0.5 * S)].sum()),
              label='T=' + str(int(0.5 * S)) + ' Pop.')
