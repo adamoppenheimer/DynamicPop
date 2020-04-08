@@ -331,13 +331,14 @@ def crit_polyvals(params, *args):
         # Weight most recently data more heavily
         diff = np.sum( (xvals[:-10] - guess[:-10]) ** 2) \
                 + np.sum( (1 + (xvals[-10:] - guess[-10:]) ** 2) ** 10)
-    elif datatype == 'mortality' and param == 'Infant Mortality':
+    elif datatype == 'mortality' and param == 'Infant Mortality Rate':
+        print('HELLO')
         # Weight most recent data more heavily
         impt_ages = 15
         diff = np.sum( (xvals[:-impt_ages] - guess[:-impt_ages]) ** 2) ** 0.1 \
                 + np.sum( (1 + (xvals[-impt_ages:] - guess[-impt_ages:]) ** 2) ** 40)
         # Add in penalty if predictions become negative
-        future_val = polynomial_fn(2100, a_0, b_0, c_0, d_0, e_0)
+        future_val = polynomial_fn(2050, a_0, b_0, c_0, d_0, e_0)
         if future_val < 0:
             diff += (1 + abs(future_val) ) ** 100
     

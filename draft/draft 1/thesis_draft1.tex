@@ -422,7 +422,7 @@ Please refer to \cite{E2020} for a detailed description of how to stationarize t
 
 \subsubsection{Demographics}
 
-We consider four demographic models. The first model assumes that demographics are constant over time. The second, third, and fourth models use the following methods to solve the steady state level of demographics. The second model assumes that fertility, mortality, and immigration are at their 2019 levels. The third model uses a parametric method described in \autoref{sec:A.2} to forecast fertility, mortality, and immigration over time. The fourth model uses existing packages to forecast demographics over time. For the second and third models, population evolution follows \ref{eq:A.2-1}, where the \(s\) subscript indicates age and the \(t\) subscript indicates period. \(\omega_{s,t}, f_{s,t}, \rho_{s,t} \geq 0\) represent the age- and period-specific population, fertility rate, and mortality rate. \(i_{s,t}\) represents the net immigration rate. Agents live for a maximum of \(E+S\) periods, where \(S \geq 3\) and \(E + 1\) indicates the first working year of life. Agents age \(\leq E\) are modeled in population dynamics but are considered outside the economy. Population and mortality rate data comes from \cite{JMD2018}. Fertility rate data comes from \cite{HFC2018}.
+We consider four demographic models. The first model assumes that demographics are constant over time. The second, third, and fourth models use the methods described in the following section to solve the steady state level of demographics. The second model assumes that fertility, mortality, and immigration are at their 2019 levels. The third model uses a parametric method described in \autoref{sec:A.2} to forecast fertility, mortality, and immigration over time. The fourth model uses the \(R\) package Demographics (\cite{alt_demo}) to forecast fertility, mortality, and immigration over time using principal components analysis. For the second third, and fourth models, population evolution follows \ref{eq:A.2-1}, where the \(s\) subscript indicates age and the \(t\) subscript indicates period. \(\omega_{s,t}, f_{s,t}, \rho_{s,t} \geq 0\) represent the age- and period-specific population, fertility rate, and mortality rate. \(i_{s,t}\) represents the net immigration rate. Agents live for a maximum of \(E+S\) periods, where \(S \geq 3\) and \(E + 1\) indicates the first working year of life. Agents age \(\leq E\) are modeled in population dynamics but are considered outside the economy. Population and mortality rate data comes from \cite{JMD2018}. Fertility rate data comes from \cite{HFC2018}.
 
 \begin{dmath}
    {\omega_{1,t+1} = (1 - \rho_{0,t})\sum_{s=1}^{E+S}f_{s,t}\omega_{s,t} + i_{1,t}\omega_{1,t} \hspace{3mm} \forall t} \\
@@ -532,19 +532,19 @@ In order to allow for a range of model years, we fit fertility and mortality rat
    \textbf{Alternate Full-Dynamic Demographics}
    \begin{subfigure}{0.33\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\DemoDir/dynamic_full/OrigVsFixSSpop.png}
+      \includegraphics[width=\textwidth]{\DemoDir/dynamic_full_alternate/OrigVsFixSSpop.png}
       \caption{\\ \shortstack{Original vs. Adjusted\\SS Population Distribution}}
    \end{subfigure}% <-- this "%" symbol is important
    ~ % <-- this "~" symbol is important
    \begin{subfigure}{0.33\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\DemoDir/dynamic_full/OrigVsAdjImm.png}
+      \includegraphics[width=\textwidth]{\DemoDir/dynamic_full_alternate/OrigVsAdjImm.png}
       \caption{\\ \shortstack{Original vs. Adjusted\\Immigration Rates}}
    \end{subfigure}% <-- this "%" symbol is important
    ~ % <-- this "~" symbol is important
    \begin{subfigure}{0.33\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\DemoDir/dynamic_full/PopDistPath.png}
+      \includegraphics[width=\textwidth]{\DemoDir/dynamic_full_alternate/PopDistPath.png}
       \caption{\\ \shortstack{Population Distribution\\Along Time Path}}
    \end{subfigure}
 \end{figure}
@@ -863,7 +863,8 @@ The second panel shows the distribution of the population at select years in the
       \begin{threeparttable}
          \begin{tabular}{cc}
             \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_basic.png} & \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_proportion_basic.png} \\
-            \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_parametric.png} & \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_proportion_parametric.png}
+            \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_parametric.png} & \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_proportion_parametric.png} \\
+            \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_alt.png} & \includegraphics[width=0.50\textwidth]{\FigureDir/population_forecasts/start_2017/predicted_proportion_alt.png}
          \end{tabular}
       \end{threeparttable}
    }
@@ -903,8 +904,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\SSDir/dynamic_full/images/SS_bc.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\SSDir/dynamic_full_alternate/images/SS_bc.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -930,8 +931,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\SSDir/dynamic_full/images/SS_n.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\SSDir/dynamic_full_alternate/images/SS_n.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -963,8 +964,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_BQ_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_BQ_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -990,8 +991,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_bs_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_bs_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1017,8 +1018,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_C_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_C_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1044,8 +1045,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_cs_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_cs_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1071,8 +1072,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_I_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_I_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1098,8 +1099,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_K_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_K_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1125,8 +1126,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_L_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_L_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1152,8 +1153,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_ns_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_ns_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1179,8 +1180,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_NX_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_NX_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1206,8 +1207,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_r_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_r_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1233,8 +1234,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_w_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_w_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
@@ -1260,8 +1261,8 @@ The second panel shows the distribution of the population at select years in the
    ~
    \begin{subfigure}{0.5\textwidth}
       \centering
-      \includegraphics[width=\textwidth]{\TPDir/dynamic_full/images/TP_Y_path.png}
-      \caption{Alternate Full-Dynamic Demographics (AO:FIX)}
+      \includegraphics[width=\textwidth]{\TPDir/dynamic_full_alternate/images/TP_Y_path.png}
+      \caption{Alternate Full-Dynamic Demographics}
    \end{subfigure}
 \end{figure}
 
