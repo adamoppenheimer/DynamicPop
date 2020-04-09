@@ -182,9 +182,13 @@ def prep_demog_alternate(country):
     mort_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'r_forecasts', 'mort_pred.csv')
     imm_file = os.path.join(CUR_PATH, 'data', 'demographic', country, 'r_forecasts', 'imm_pred.csv')
 
-    pred_fert = pd.read_csv(fert_file)
-    pred_mort = pd.read_csv(mort_file)
-    pred_imm = pd.read_csv(imm_file)
+    pred_fert = pd.read_csv(fert_file) - 1
+    pred_mort = pd.read_csv(mort_file) - 1
+    pred_imm = pd.read_csv(imm_file) - 1
+
+    pred_fert[pred_fert < 0] = 0
+    pred_mort[pred_mort < 0] = 0
+    pred_mort[pred_mort > 1] = 1
 
     return pred_fert, pred_mort, pred_imm
 
@@ -502,11 +506,12 @@ def get_pop_objs_static(E, S, T, min_age, max_age, curr_year, country='Japan', G
 
     '''
     # Prepare demographics with true data
+    data_year = 2015
     pop_prev_data, pop_yr_data, _, _, _ = get_true_demog_data(country, min_age, max_age)
     pop_prev_rebin = pop_rebin(pop_prev_data, E + S)
     pop_yr_rebin = pop_rebin(pop_yr_data, E + S)
-    fert_rates = get_fert(E + S, min_age, max_age, curr_year - 1, country, demog_type='static', graph=True)
-    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, curr_year - 1, country, demog_type='static', graph=True)
+    fert_rates = get_fert(E + S, min_age, max_age, data_year - 1, country, demog_type='static', graph=True)
+    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, data_year - 1, country, demog_type='static', graph=True)
     mort_rates_S = mort_rates[-S:]
     imm_rates_orig = util.calc_imm_resid(fert_rates, mort_rates, pop_prev_rebin, pop_yr_rebin)
     
@@ -607,8 +612,8 @@ def get_pop_objs_dynamic_partial(E, S, T, min_age, max_age, curr_year, country='
     pop_prev_data, pop_yr_data, _, _, _ = get_true_demog_data(country, min_age, max_age)
     pop_prev_rebin = pop_rebin(pop_prev_data, E + S)
     pop_yr_rebin = pop_rebin(pop_yr_data, E + S)
-    fert_rates = get_fert(E + S, min_age, max_age, curr_year - 1, country, demog_type='dynamic_partial', graph=False)
-    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, curr_year - 1, country, demog_type='dynamic_partial', graph=False)
+    fert_rates = get_fert(E + S, min_age, max_age, data_year - 1, country, demog_type='dynamic_partial', graph=False)
+    mort_rates, infmort_rate = get_mort(E + S, min_age, max_age, data_year - 1, country, demog_type='dynamic_partial', graph=False)
     mort_rates_S = mort_rates[-S:]
     mort_rates_S = np.expand_dims(mort_rates_S, 1)
     imm_rates_orig = util.calc_imm_resid(fert_rates, mort_rates, pop_prev_rebin, pop_yr_rebin)
