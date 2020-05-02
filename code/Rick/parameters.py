@@ -25,10 +25,12 @@ class parameters:
     Parameters class for exogenous objects
     '''
 
-    def __init__(self):
+    def __init__(self, demog_type):
         '''
         Instantiate the parameters class with the input name
         paramclass_name
+
+        demog_type: demographic forecasting method
         '''
         '''
         Period parameters
@@ -133,39 +135,7 @@ class parameters:
                         age for economically active ages
         ----------------------------------------------------------------
         '''
-        self.demog_type = 'partial_dynamic'
-        self.min_yr = 0
-        self.max_yr = self.E + self.S - 1
-        self.curr_year = 2020
-        (omega_tp, g_n_ss, omega_ss, surv_rates, rho_path_lev, g_n_path,
-            imm_rates_mat, omega_m1) = \
-            demog.get_pop_objs_dynamic_partial(self.E, self.S, self.T1, self.min_yr,
-                            self.max_yr, self.curr_year,
-                            GraphDiag=True)
-        # (omega_tp, g_n_ss, omega_ss, surv_rates, rho_ss, g_n_path,
-        #     imm_rates_mat, omega_m1) = \
-        #     demog.get_pop_objs_dynamic_partial(self.E, self.S, self.T1, self.min_yr,
-        #                        self.max_yr, self.curr_year,
-        #                        GraphDiag=False)
-        self.i_ss = imm_rates_mat.T[:, self.T1]
-        self.omega_ss = omega_ss
-        self.omega_tp = \
-            np.append(omega_tp.T, omega_ss.reshape((self.S, 1)), axis=1)
-        self.rho_ss = rho_path_lev.T[:, self.T2]
-        self.rho_m1 = self.rho_ss
-        self.rho_st = rho_path_lev.T
-        # self.rho_ss = rho_ss
-        # self.rho_m1 = rho_ss
-        # self.rho_st = np.tile(self.rho_ss.reshape((self.S, 1)),
-        #                       (1, self.T2 + self.S))
-        self.omega_m1 = omega_m1
-        self.g_n_ss = g_n_ss
-        self.g_n_tp = \
-            np.append(g_n_path.reshape((1, self.T1 + self.S)),
-                      g_n_ss * np.ones((1, self.T2 - self.T1)),
-                      axis=1).flatten()
-        self.i_st = np.append(imm_rates_mat.T,
-                              self.i_ss.reshape((self.S, 1)), axis=1)
+        self.set_demog(demog_type)
 
         '''
         Industry parameters
@@ -238,7 +208,9 @@ class parameters:
 
         Args:
             demog_type (string): 'static' for static demographics,
-                'dynamic' for dynamic demographics
+                'dynamic_partial' for partial dynamic demographics
+                'dynamic_full' for parametric full dynamic demographics
+                'dynamic_full_alternate' for non-parametric full dynamic demographics
         '''
         '''
         Demographic parameters
