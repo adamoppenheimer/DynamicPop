@@ -341,19 +341,23 @@ def create_graphs(tpi_output, p):
     if not os.access(image_dir, os.F_OK):
         os.makedirs(image_dir)
 
+    # Reduce time period considered
+    reduction = 50
+    p.T2 = p.T2 - reduction
+
     # Unpack time path equilibrium objects to be plotted
-    cs_path = tpi_output['cs_path']
-    ns_path = tpi_output['ns_path']
-    bs_path = tpi_output['bs_path']
-    r_path = tpi_output['r_path']
-    w_path = tpi_output['w_path']
-    BQ_path = tpi_output['BQ_path']
-    K_path = tpi_output['K_path']
-    L_path = tpi_output['L_path']
-    Y_path = tpi_output['Y_path']
-    C_path = tpi_output['C_path']
-    I_path = tpi_output['I_path']
-    NX_path = tpi_output['NX_path']
+    cs_path = tpi_output['cs_path'][:, :-reduction]
+    ns_path = tpi_output['ns_path'][:, :-reduction]
+    bs_path = tpi_output['bs_path'][:, :-reduction]
+    r_path = tpi_output['r_path'][:-reduction]
+    w_path = tpi_output['w_path'][:-reduction]
+    BQ_path = tpi_output['BQ_path'][:-reduction]
+    K_path = tpi_output['K_path'][:-reduction]
+    L_path = tpi_output['L_path'][:-reduction]
+    Y_path = tpi_output['Y_path'][:-reduction]
+    C_path = tpi_output['C_path'][:-reduction]
+    I_path = tpi_output['I_path'][:-reduction]
+    NX_path = tpi_output['NX_path'][:-reduction]
 
     # Plot time path of interest rate
     tvec = np.arange(0, p.T2 + 1)
@@ -544,6 +548,316 @@ def create_graphs(tpi_output, p):
     strideval = max(int(1), int(round(p.S / 10)))
     ax.plot_surface(tmat_b, smat_b, bs_path[:, :p.T2 + 1],
                     rstride=strideval, cstride=strideval, cmap=cmap_c)
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'TP_bs_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
+    '''
+    --------------------------------------------------------------------
+    Plot equilibrium time path results
+    --------------------------------------------------------------------
+    '''
+    # Create directory if images directory does not already exist
+    cur_path = os.path.split(os.path.abspath(__file__))[0]
+    image_fldr = 'OUTPUT/TP/pct_change/images'
+    image_dir = os.path.join(cur_path, image_fldr)
+    if not os.access(image_dir, os.F_OK):
+        os.makedirs(image_dir)
+
+    # Reduce time period considered
+    reduction = 50
+    p.T2 = p.T2 - reduction
+
+    # Unpack time path equilibrium objects to be plotted
+    cs_paths = [tpi_baseline['cs_path'][:, :-reduction]]
+    ns_paths = [tpi_baseline['ns_path'][:, :-reduction]]
+    bs_paths = [tpi_baseline['bs_path'][:, :-reduction]]
+    r_paths = [tpi_baseline['r_path'][:-reduction]]
+    w_paths = [tpi_baseline['w_path'][:-reduction]]
+    BQ_paths = [tpi_baseline['BQ_path'][:-reduction]]
+    K_paths = [tpi_baseline['K_path'][:-reduction]]
+    L_paths = [tpi_baseline['L_path'][:-reduction]]
+    Y_paths = [tpi_baseline['Y_path'][:-reduction]]
+    C_paths = [tpi_baseline['C_path'][:-reduction]]
+    I_paths = [tpi_baseline['I_path'][:-reduction]]
+    NX_paths = [tpi_baseline['NX_path'][:-reduction]]
+
+    # Correct for divide by 0 errors
+    # cs_paths[0][cs_paths[0] == 0] = 1e-10
+    # ns_paths[0][ns_paths[0] == 0] = 1e-10
+    # bs_paths[0][bs_paths[0] == 0] = 1e-10
+
+    for tpi_output in tpi_comparisons:
+        # For cs, ns, and bs, account for potential divide-by-zero
+        # cs
+        cs = cs_paths[0].copy()
+        cs_eq = cs_paths[0] == tpi_output['cs_path'][:, :-reduction]
+        cs[cs_eq] = 0
+        cs[~cs_eq] = (tpi_output['cs_path'][:, :-reduction][~cs_eq] - cs_paths[0][~cs_eq]) / cs_paths[0][~cs_eq]
+        cs_paths.append(cs)
+        # ns
+        ns = ns_paths[0].copy()
+        ns_eq = ns_paths[0] == tpi_output['ns_path'][:, :-reduction]
+        ns[ns_eq] = 0
+        ns[~ns_eq] = (tpi_output['ns_path'][:, :-reduction][~ns_eq] - ns_paths[0][~ns_eq]) / ns_paths[0][~ns_eq]
+        ns_paths.append(ns)
+        # bs
+        bs = bs_paths[0].copy()
+        bs_eq = bs_paths[0] == tpi_output['bs_path'][:, :-reduction]
+        bs[bs_eq] = 0
+        bs[~bs_eq] = (tpi_output['bs_path'][:, :-reduction][~bs_eq] - bs_paths[0][~bs_eq]) / bs_paths[0][~bs_eq]
+        bs_paths.append(bs)
+
+        # No more concern about divide-by-zero
+        r = (tpi_output['r_path'][:-reduction] - r_paths[0]) / r_paths[0]
+        r_paths.append(r)
+        w = (tpi_output['w_path'][:-reduction] - w_paths[0]) / w_paths[0]
+        w_paths.append(w)
+        BQ = (tpi_output['BQ_path'][:-reduction] - BQ_paths[0]) / BQ_paths[0]
+        BQ_paths.append(BQ)
+        K = (tpi_output['K_path'][:-reduction] - K_paths[0]) / K_paths[0]
+        K_paths.append(K)
+        L = (tpi_output['L_path'][:-reduction] - L_paths[0]) / L_paths[0]
+        L_paths.append(L)
+        Y = (tpi_output['Y_path'][:-reduction] - Y_paths[0]) / Y_paths[0]
+        Y_paths.append(Y)
+        C = (tpi_output['C_path'][:-reduction] - C_paths[0]) / C_paths[0]
+        C_paths.append(C)
+        I = (tpi_output['I_path'][:-reduction] - I_paths[0]) / I_paths[0]
+        I_paths.append(I)
+        NX = (tpi_output['NX_path'][:-reduction] - NX_paths[0]) / NX_paths[0]
+        NX_paths.append(NX)
+
+    # Drop static
+    cs_paths = cs_paths[1:]
+    ns_paths = ns_paths[1:]
+    bs_paths = bs_paths[1:]
+    r_paths = r_paths[1:]
+    w_paths = w_paths[1:]
+    BQ_paths = BQ_paths[1:]
+    K_paths = K_paths[1:]
+    L_paths = L_paths[1:]
+    Y_paths = Y_paths[1:]
+    C_paths = C_paths[1:]
+    I_paths = I_paths[1:]
+    NX_paths = NX_paths[1:]
+    labels = labels[1:]
+
+    # Plot time path of interest rate
+    tvec = np.arange(0, p.T2 + 1)
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, r_path in enumerate(r_paths):
+        plt.plot(tvec, r_path[:p.T2 + 1], label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title(r'Time Path of Interest Rate $r_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Interest Rate $r_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_r_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of wage
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, w_path in enumerate(w_paths):
+        plt.plot(tvec, w_path[:p.T2 + 1], label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title(r'Time path of Wage $\hat{w}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Wage $\hat{w}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_w_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of total bequests
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, BQ_path in enumerate(BQ_paths):
+        plt.plot(tvec, BQ_path[:p.T2 + 1], label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title(r'Time Path of Total Bequests $\hat{BQ}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Total Bequests $\hat{BQ}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_BQ_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of aggregate capital
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, K_path in enumerate(K_paths):
+        plt.plot(tvec, K_path, label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    #plt.title(r'Time Path of Aggregate Capital $\hat{K}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Aggregate Capital $\hat{K}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_K_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of aggregate labor
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, L_path in enumerate(L_paths):
+        plt.plot(tvec, L_path, label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    #plt.title(r'Time Path of Aggregate Labor Supply $\hat{L}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Aggregate Labor Supply $\hat{L}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_L_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of aggregate output
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, Y_path in enumerate(Y_paths):
+        plt.plot(tvec, Y_path, label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title(r'Time Path of Aggregate Output $\hat{Y}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Aggregate Output $\hat{Y}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_Y_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of aggregate consumption
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, C_path in enumerate(C_paths):
+        plt.plot(tvec, C_path, label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    #plt.title(r'Time Path of Aggregate Consumption $\hat{C}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Aggregate Consumption $\hat{C}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_C_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of aggregate investment
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, I_path in enumerate(I_paths):
+        plt.plot(tvec, I_path, label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    #plt.title(r'Time Path of Aggregate Investment $\hat{I}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Aggregate Investment $\hat{I}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_I_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of net exports
+    minorLocator = MultipleLocator(1)
+    fig, ax = plt.subplots()
+    for i, NX_path in enumerate(NX_paths):
+        plt.plot(tvec, NX_path, label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    #plt.title(r'Time Path of Net Exports $\hat{NX}_t$')
+    plt.xlabel(r'Period $t$')
+    plt.ylabel(r'Net Exports $\hat{NX}_t$ (% Deviation from Static)')
+    plt.tight_layout()
+    plt.legend()
+    output_path = os.path.join(image_dir, 'TP_NX_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of individual consumption distribution
+    sgrid = np.arange(p.E + 1, p.E + p.S + 1)
+    tmat, smat = np.meshgrid(tvec, sgrid)
+    cmap_c = cm.get_cmap('summer')
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.set_xlabel(r'Period $t$')
+    ax.set_ylabel(r'Age $s$')
+    ax.set_zlabel(r'Individual Consumption $\hat{c}_{s,t}$ (% Deviation from Static)')
+    strideval = max(int(1), int(round(p.S / 10)))
+    for i, cs_path in enumerate(cs_paths):
+        ax.plot_surface(tmat, smat, cs_path[:, :p.T2 + 1],
+                        rstride=strideval, cstride=strideval, cmap=cmap_c)
+    plt.tight_layout()
+    # NOTE: cannot include labels
+
+    output_path = os.path.join(image_dir, 'TP_cs_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of individual labor supply distribution
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.set_xlabel(r'Period $t$')
+    ax.set_ylabel(r'Age $s$')
+    ax.set_zlabel(r'Individual Labor Supply $n_{s,t}$ (% Deviation from Static)')
+    strideval = max(int(1), int(round(p.S / 10)))
+    for i, ns_path in enumerate(ns_paths):
+        ax.plot_surface(tmat, smat, ns_path[:, :p.T2 + 1],
+                        rstride=strideval, cstride=strideval, cmap=cmap_c)
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'TP_ns_path')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot time path of individual savings distribution
+    sgrid_b = np.arange(p.E + 1, p.E + p.S + 2)
+    tmat_b, smat_b = np.meshgrid(tvec, sgrid_b)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.set_xlabel(r'Period $t$')
+    ax.set_ylabel(r'Age $s$')
+    ax.set_zlabel(r'Individual Savings $b_{s,t}$ (% Deviation from Static)')
+    strideval = max(int(1), int(round(p.S / 10)))
+    for i, bs_path in enumerate(bs_paths):
+        ax.plot_surface(tmat_b, smat_b, bs_path[:, :p.T2 + 1],
+                        rstride=strideval, cstride=strideval, cmap=cmap_c)
     plt.tight_layout()
     output_path = os.path.join(image_dir, 'TP_bs_path')
     plt.savefig(output_path)

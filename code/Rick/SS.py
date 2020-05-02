@@ -342,3 +342,156 @@ def ss_graphs(c_ss, n_ss, b_ss, p):
     plt.savefig(output_path)
     # plt.show()
     plt.close()
+
+def ss_pct_change_graphs(ss_baseline, ss_comparisons, p, labels):
+    '''
+    --------------------------------------------------------------------
+    Plot steady-state equilibrium results
+    --------------------------------------------------------------------
+    '''
+    # Create directory if images directory does not already exist
+    cur_path = os.path.split(os.path.abspath(__file__))[0]
+    image_fldr = 'OUTPUT/SS/pct_change/images'
+    image_dir = os.path.join(cur_path, image_fldr)
+    if not os.access(image_dir, os.F_OK):
+        os.makedirs(image_dir)
+
+    c_ss_lst = [ss_baseline['c_ss']]
+    n_ss_lst = [ss_baseline['n_ss']]
+    b_ss_lst = [ss_baseline['b_ss']]
+
+    # # Correct for divide by 0 errors
+    # c_ss_lst[0][c_ss_lst[0] == 0] = 1e-10
+    # n_ss_lst[0][n_ss_lst[0] == 0] = 1e-10
+    # b_ss_lst[0][b_ss_lst[0] == 0] = 1e-10
+
+    for ss_output in ss_comparisons:
+        # Account for potential divide-by-zero
+        # c_ss
+        c_ss = c_ss_lst[0].copy()
+        c_ss_eq = c_ss_lst[0] == ss_output['c_ss']
+        c_ss[c_ss_eq] = 0
+        c_ss[~c_ss_eq] = (ss_output['c_ss'][~c_ss_eq] - c_ss_lst[0][~c_ss_eq]) / c_ss_lst[0][~c_ss_eq]
+        c_ss_lst.append(c_ss)
+        # n_ss
+        n_ss = n_ss_lst[0].copy()
+        n_ss_eq = n_ss_lst[0] == ss_output['n_ss']
+        n_ss[n_ss_eq] = 0
+        n_ss[~n_ss_eq] = (ss_output['n_ss'][~n_ss_eq] - n_ss_lst[0][~n_ss_eq]) / n_ss_lst[0][~n_ss_eq]
+        n_ss_lst.append(n_ss)
+        # b_ss
+        b_ss = b_ss_lst[0].copy()
+        b_ss_eq = b_ss_lst[0] == ss_output['b_ss']
+        b_ss[b_ss_eq] = 0
+        b_ss[~b_ss_eq] = (ss_output['b_ss'][~b_ss_eq] - b_ss_lst[0][~b_ss_eq]) / b_ss_lst[0][~b_ss_eq]
+        b_ss_lst.append(b_ss)
+
+    # Drop static
+    c_ss_lst = c_ss_lst[1:]
+    n_ss_lst = n_ss_lst[1:]
+    b_ss_lst = b_ss_lst[1:]
+    labels = labels[1:]
+
+    # BASELINE GRAPHS
+
+    # Plot steady-state consumption distribution for STATIC
+    age_pers_c = np.arange(p.E + 1, p.E + p.S + 1)
+    fig, ax = plt.subplots()
+    plt.plot(age_pers_c, ss_baseline['c_ss'], marker='D')
+    # for the minor ticks, use no labels; default NullFormatter
+    minorLocator = MultipleLocator(1)
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title('Steady-State Consumption and Savings', fontsize=20)
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Units of Consumption')
+    plt.xlim((p.E, p.E + p.S + 2))
+    # plt.ylim((-1.0, 1.15 * (b_ss.max())))
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'SS_c_static')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot steady-state savings distribution
+    age_pers_b = np.arange(p.E + 1, p.E + p.S + 2)
+    fig, ax = plt.subplots()
+    plt.plot(age_pers_b, ss_baseline['b_ss'], marker='D')
+    # for the minor ticks, use no labels; default NullFormatter
+    minorLocator = MultipleLocator(1)
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title('Steady-State Consumption and Savings', fontsize=20)
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Units of Consumption')
+    plt.xlim((p.E, p.E + p.S + 2))
+    # plt.ylim((-1.0, 1.15 * (b_ss.max())))
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'SS_b_static')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # PERCENT DEVIATION GRAPHS
+
+    # Plot steady-state consumption distribution
+    age_pers_c = np.arange(p.E + 1, p.E + p.S + 1)
+    fig, ax = plt.subplots()
+    for i, c_ss in enumerate(c_ss_lst):
+        plt.plot(age_pers_c, c_ss, marker='D', label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    minorLocator = MultipleLocator(1)
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title('Steady-State Consumption and Savings', fontsize=20)
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Units of Consumption (% Deviation from Static)')
+    plt.xlim((p.E, p.E + p.S + 2))
+    # plt.ylim((-1.0, 1.15 * (b_ss.max())))
+    plt.legend(loc='upper left')
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'SS_c')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot steady-state savings distribution
+    age_pers_b = np.arange(p.E + 1, p.E + p.S + 2)
+    fig, ax = plt.subplots()
+    for i, b_ss in enumerate(b_ss_lst):
+        plt.plot(age_pers_b, b_ss, marker='D', label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    minorLocator = MultipleLocator(1)
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title('Steady-State Consumption and Savings', fontsize=20)
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Units of Consumption (% Deviation from Static)')
+    plt.xlim((p.E, p.E + p.S + 2))
+    # plt.ylim((-1.0, 1.15 * (b_ss.max())))
+    plt.legend(loc='upper left')
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'SS_b')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()
+
+    # Plot steady-state labor supply distributions
+    fig, ax = plt.subplots()
+    for i, n_ss in enumerate(n_ss_lst):
+        plt.plot(age_pers_c, n_ss, marker='D', label=labels[i])
+    # for the minor ticks, use no labels; default NullFormatter
+    minorLocator = MultipleLocator(1)
+    ax.xaxis.set_minor_locator(minorLocator)
+    plt.grid(b=True, which='major', color='0.65', linestyle='-')
+    # plt.title('Steady-State Labor Supply', fontsize=20)
+    plt.xlabel(r'Age $s$')
+    plt.ylabel(r'Labor Supply (% Deviation from Static)')
+    plt.xlim((p.E, p.E + p.S + 1))
+    # plt.ylim((-0.1, 1.15 * (n_ss.max())))
+    plt.legend(loc='upper right')
+    plt.tight_layout()
+    output_path = os.path.join(image_dir, 'SS_n')
+    plt.savefig(output_path)
+    # plt.show()
+    plt.close()

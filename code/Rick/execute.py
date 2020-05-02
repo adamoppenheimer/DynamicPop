@@ -35,9 +35,10 @@ import TP as tp
 Import parameters
 ------------------------------------------------------------------------
 '''
-p = params.parameters()
-for demog_type in ['dynamic_full_alternate']: # 'static', 'dynamic_partial', 'dynamic_full',
-    p.set_demog(demog_type)
+#p = params.parameters()
+for demog_type in ['static']: # 'static', 'dynamic_partial', 'dynamic_full', 'dynamic_full_alternate'
+    p = params.parameters(demog_type)
+    #p.set_demog(demog_type)
 
     '''
     ------------------------------------------------------------------------
