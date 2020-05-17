@@ -1,7 +1,7 @@
 \documentclass[10pt]{article}
 
-% Math environment, symbols, bbm fonts, doublestroke fonts, physics for partial derivatives (pdv{}{})
-\usepackage{amsmath,amssymb,bbm,dsfont,physics}
+% Math environment, symbols, bbm fonts, doublestroke fonts, physics for partial derivatives (pdv{}{}), breqn for multi-line equations
+\usepackage{amsmath,amssymb,bbm,dsfont,physics,breqn}
 % Define plim operator
 \DeclareMathOperator*{\plim}{plim}
 % Page size and margins
@@ -92,17 +92,6 @@
 \numberwithin{equation}{subsection}
 % No more . inside of equation tags, instead say eqn.
 \renewcommand{\theequation}{\thesubsection \text{ eqn.} \arabic{equation}}
-
-% % Automatically label equations
-% \LetLtxMacro{\oldequation}{\equation}
-% \renewcommand{\equation}[2][]{\oldequation{#2}\label{eq:\thesubsection-\arabic{equation}}}
-% % Automatically label align
-% \LetLtxMacro{\oldalign}{\align}
-% \renewcommand{\align}[2][]{\oldalign{#2}\label{eq:\thesubsection-\arabic{equation}}}
-% Multiline equations, plus automatically label them
-\usepackage{breqn}
-% \LetLtxMacro{\olddmath}{\dmath}
-% \renewcommand{\dmath}[2][]{\olddmath{#2}\label{eq:\thesubsection-\arabic{equation}}}
 
 % Suppress underfull \hbox warning
 \hbadness=10000
@@ -216,7 +205,7 @@
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{titlepage}
-\title{Estimation Effects of Various Demographic Forecasting Techniques in Japan Using an Overlapping Generations Model 
+\title{Estimation Effects of Various Demographic Forecasting Techniques in Japan Using an Overlapping Generations Model
          \thanks{I would like to thank Dr. Richard Evans for the guidance and support he provided while writing my thesis.}
       }
 \author{

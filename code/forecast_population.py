@@ -71,11 +71,18 @@ fert_alt, mort_alt, imm_alt = prep_demog_alternate(fert_data, mort_data, imm_dat
 
 datatype = 'population_forecasts'
 
+
+
 start = 1971
 end = 2017
 ages = np.linspace(0, 99, 100).astype(int)
 birth_ages = np.linspace(14, 50, 37)
 years = np.linspace(start, end, end - start + 1).astype(int)
+
+# Plot true data transition
+util.plot_data_transition(pop_data, ages, 1970, 2014, smooth=0, datatype='population')
+
+# Start forecasts
 
 prev_pop = pop_data[start - 1]
 
