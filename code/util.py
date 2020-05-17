@@ -920,6 +920,8 @@ def plot_data_transition(data, ages, start, end, smooth, datatype):
         y = r'Mortality Rate $\rho_{s,t}$'
     elif datatype == 'immigration':
         y = r'Immigration Rate $i_{s,t}$'
+    elif datatype == 'population':
+        y = r'Population $\omega_{s,t}$'
     plt.ylabel(y)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
     plt.tight_layout()

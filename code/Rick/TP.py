@@ -427,7 +427,7 @@ def create_graphs(tpi_output, p):
     # Plot time path of aggregate labor
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
-    plt.plot(tvec, L_path, label=r'$\hat{L}_t$')
+    plt.plot(tvec[:75], L_path[:75], label=r'$\hat{L}_t$')
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -443,7 +443,7 @@ def create_graphs(tpi_output, p):
     # Plot time path of aggregate output
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
-    plt.plot(tvec, Y_path, label=r'$\hat{Y}_t$')
+    plt.plot(tvec[:50], Y_path[:50], label=r'$\hat{Y}_t$')
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -651,7 +651,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, r_path in enumerate(r_paths):
-        plt.plot(tvec, r_path[:p.T2 + 1], label=labels[i])
+        plt.plot(tvec, 100 * r_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -669,7 +669,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, w_path in enumerate(w_paths):
-        plt.plot(tvec, w_path[:p.T2 + 1], label=labels[i])
+        plt.plot(tvec, 100 * w_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -687,7 +687,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, BQ_path in enumerate(BQ_paths):
-        plt.plot(tvec, BQ_path[:p.T2 + 1], label=labels[i])
+        plt.plot(tvec, 100 * BQ_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -705,7 +705,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, K_path in enumerate(K_paths):
-        plt.plot(tvec, K_path, label=labels[i])
+        plt.plot(tvec, 100 * K_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -723,7 +723,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, L_path in enumerate(L_paths):
-        plt.plot(tvec, L_path, label=labels[i])
+        plt.plot(tvec[:75], 100 * L_path[:75], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -741,7 +741,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, Y_path in enumerate(Y_paths):
-        plt.plot(tvec, Y_path, label=labels[i])
+        plt.plot(tvec[:50], 100 * Y_path[:50], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -759,7 +759,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, C_path in enumerate(C_paths):
-        plt.plot(tvec, C_path, label=labels[i])
+        plt.plot(tvec, 100 * C_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -777,7 +777,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, I_path in enumerate(I_paths):
-        plt.plot(tvec, I_path, label=labels[i])
+        plt.plot(tvec, 100 * I_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -795,7 +795,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     minorLocator = MultipleLocator(1)
     fig, ax = plt.subplots()
     for i, NX_path in enumerate(NX_paths):
-        plt.plot(tvec, NX_path, label=labels[i])
+        plt.plot(tvec, 100 * NX_path[:p.T2 + 1], label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     ax.xaxis.set_minor_locator(minorLocator)
     plt.grid(b=True, which='major', color='0.65', linestyle='-')
@@ -820,7 +820,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     ax.set_zlabel(r'Individual Consumption $\hat{c}_{s,t}$ (% Deviation from Static)')
     strideval = max(int(1), int(round(p.S / 10)))
     for i, cs_path in enumerate(cs_paths):
-        ax.plot_surface(tmat, smat, cs_path[:, :p.T2 + 1],
+        ax.plot_surface(tmat, smat, 100 * cs_path[:, :p.T2 + 1],
                         rstride=strideval, cstride=strideval, cmap=cmap_c)
     plt.tight_layout()
     # NOTE: cannot include labels
@@ -838,7 +838,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     ax.set_zlabel(r'Individual Labor Supply $n_{s,t}$ (% Deviation from Static)')
     strideval = max(int(1), int(round(p.S / 10)))
     for i, ns_path in enumerate(ns_paths):
-        ax.plot_surface(tmat, smat, ns_path[:, :p.T2 + 1],
+        ax.plot_surface(tmat, smat, 100 * ns_path[:, :p.T2 + 1],
                         rstride=strideval, cstride=strideval, cmap=cmap_c)
     plt.tight_layout()
     output_path = os.path.join(image_dir, 'TP_ns_path')
@@ -856,7 +856,7 @@ def tp_pct_change_graphs(tpi_baseline, tpi_comparisons, p, labels):
     ax.set_zlabel(r'Individual Savings $b_{s,t}$ (% Deviation from Static)')
     strideval = max(int(1), int(round(p.S / 10)))
     for i, bs_path in enumerate(bs_paths):
-        ax.plot_surface(tmat_b, smat_b, bs_path[:, :p.T2 + 1],
+        ax.plot_surface(tmat_b, smat_b, 100 * bs_path[:, :p.T2 + 1],
                         rstride=strideval, cstride=strideval, cmap=cmap_c)
     plt.tight_layout()
     output_path = os.path.join(image_dir, 'TP_bs_path')
