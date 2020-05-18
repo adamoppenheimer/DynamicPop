@@ -438,7 +438,7 @@ def ss_pct_change_graphs(ss_baseline, ss_comparisons, p, labels):
     age_pers_c = np.arange(p.E + 1, p.E + p.S + 1)
     fig, ax = plt.subplots()
     for i, c_ss in enumerate(c_ss_lst):
-        plt.plot(age_pers_c, c_ss, marker='D', label=labels[i])
+        plt.plot(age_pers_c, 100 * c_ss, marker='D', label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     minorLocator = MultipleLocator(1)
     ax.xaxis.set_minor_locator(minorLocator)
@@ -459,7 +459,7 @@ def ss_pct_change_graphs(ss_baseline, ss_comparisons, p, labels):
     age_pers_b = np.arange(p.E + 1, p.E + p.S + 2)
     fig, ax = plt.subplots()
     for i, b_ss in enumerate(b_ss_lst):
-        plt.plot(age_pers_b, b_ss, marker='D', label=labels[i])
+        plt.plot(age_pers_b, 100 * b_ss, marker='D', label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     minorLocator = MultipleLocator(1)
     ax.xaxis.set_minor_locator(minorLocator)
@@ -479,7 +479,7 @@ def ss_pct_change_graphs(ss_baseline, ss_comparisons, p, labels):
     # Plot steady-state labor supply distributions
     fig, ax = plt.subplots()
     for i, n_ss in enumerate(n_ss_lst):
-        plt.plot(age_pers_c, n_ss, marker='D', label=labels[i])
+        plt.plot(age_pers_c, 100 * n_ss, marker='D', label=labels[i])
     # for the minor ticks, use no labels; default NullFormatter
     minorLocator = MultipleLocator(1)
     ax.xaxis.set_minor_locator(minorLocator)
