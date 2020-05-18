@@ -68,7 +68,7 @@ for demog_type in ['static', 'dynamic_partial', 'dynamic_full', 'dynamic_full_al
         tp_output = pickle.load(open(tp_outputfile, 'rb'))
     tp_results.append(tp_output)
 
-    graph = True
+    graph = False
     if graph:
         p = params.parameters(demog_type)
         tp.create_graphs(tp_output, p)
